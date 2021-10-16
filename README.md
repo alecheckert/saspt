@@ -19,11 +19,24 @@ If using `conda`:
 git clone https://github.com/alecheckert/saspt.git; cd saspt
 
 # Create the saspt_env conda environment
-conda env create -f example_env.yml
+conda env create -f example_env.yaml
    
 # Switch to the saspt_env conda environment
 conda activate saspt_env
 
 # Install saspt
 pip install .
+```
+
+## Run tests
+
+We recommend `pytest` or `nose2`. From the top-level repo directory,
+run the testing suite with either
+```
+pytest tests
+```
+
+or
+```
+nose2 tests
 ```
