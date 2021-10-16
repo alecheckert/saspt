@@ -1,0 +1,641 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{verbatim}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{\baselineskip}
+
+\usepackage{tocloft}
+
+\setlength\cftparskip{0pt}
+\setlength\cftbeforesecskip{2pt}
+\setlength\cftaftertoctitleskip{2pt}
+
+% Bold vectors
+\renewcommand{\vec}{\mathbf}
+
+% Non-italic infinitesimals
+\newcommand{\D}{\text{d}}
+
+
+\begin{document}
+
+\title{State arrays for single particle tracking (saSPT) - User Guide} 
+\author{Alec Heckert, Liza Dahal, Xavier Darzacq \& Robert Tjian}
+
+\date{May 2021}
+
+\maketitle
+
+saSPT is a tool to extract information from trajectories collected in 
+live cell stroboscopic photoactivated single particle tracking (spaSPT)
+experiments. The output of saSPT is a distribution over
+parameters that govern the particles' motion, enabling the user to identify
+diffusive states and their characteristics from noisy observed trajectories.
+This user guide and the rest of the code can be found at
+\url{https://gitlab.com/alecheckert/saspt}.
+
+saSPT is distributed under the \href{https://gitlab.com/alecheckert/saspt/-/blob/main/LICENSE}{MIT License}.
+
+If using saSPT for academic research, please cite the saSPT research 
+article:
+
+Alec Heckert, Liza Dahal, Robert Tjian, Xavier Darzacq. Recovering mixtures of fast diffusing states from short single particle trajectories (preprint). \emph{bioRxiv} (2021). \url{https://doi.org/10.1101/2021.05.03.442482}
+
+While this User Guide briefly outlines the algorithms behind state arrays, the 
+research article should be consulted for a more in-depth derivation. The article
+also provides a treatment of the defocalization problem in SPT, which we only 
+mention in passing here. 
+
+\newpage
+
+\tableofcontents
+
+\section{saSPT user manual}
+
+\subsection{Quick start}
+
+See \verb|examples/example_state_arrays.py| in this repo for an
+example of how to run saSPT on trajectories.
+
+\subsection{What does saSPT do?}
+
+saSPT aims to provide a simple and intuitive tool to learn about
+the mobility of particles in a tracking experiment while accounting
+for some known biases. saSPT's underlying model assumes that 
+trajectories come from a mixture of underlying \emph{diffusive states}.
+Each state can be considered a possible model for the particle's motion,
+and has an associated set of one or more parameters. 
+An example parameter is the diffusion coefficient for regular
+Brownian motion (RBM), which parametrizes the variance of the jumps made by 
+a particle undergoing RBM.
+
+This kind of mixture model is very popular, and many methods attempt to 
+infer some or all of the following:
+\begin{enumerate}
+    \item the number of states
+    \item the parameters for each state
+    \item the occupation of each state (its relative abundance)
+    \item the origin state for each observed trajectory
+\end{enumerate}
+
+saSPT relies on a kind of inference that favors sparse models with a 
+small number of states rather than more complex alternatives. 
+As a result, instead of attempting to get the number of states or
+the state parameters directly, it uses a large ``grid'' of state
+parameters, the occupations of most of which are driven to zero in 
+the course of the algorithm. As a result, we only infer (3) and (4)
+in the list above. The output of inference is a \emph{posterior distribution}
+over the state occupations and the trajectory-state assignments, which 
+captures the information inferred about the state occupations and 
+trajectory-state assignments in addition to providing some idea of the 
+uncertainty on these parameters.
+
+saSPT takes a set of trajectories as a CSV and returns 
+the posterior distribution as a CSV, \verb|numpy.ndarray|, or 
+\verb|pandas.DataFrame|. It can also generate some plots that summarize
+the outcome of the inference, and performs a limited number of related
+analyses that are useful to judge experiment-to-experiment variability,
+spatial and temporal variation in the diffusive profile of an SPT 
+target, and other effects of interest for inferring diffusive states.
+
+\subsection{What doesn't saSPT do?}
+
+\begin{itemize}
+    \item saSPT is not a tool for detection or tracking. It expects you to detect and track fluorescent emitters by another tracking algorithm.
+    \item Apart from a rudimentary filter on the starting frame index, saSPT does not provide any options to filter trajectories prior to inferring the posterior.
+    \item saSPT has no way to detect tracking errors or misdetections in SPT data. It does not check the quality of your input data at all, and will analyze exactly what you give it, regardless of whether the trajectories are high-confidence or junk. The output of saSPT is only as good as the quality of the input trajectories.
+    \item saSPT requires that you provide the parameters for your tracking experiment, including the frame interval, microscope focal depth, and pixel size. Some likelihood functions (for instance, \verb|gamma| or \verb|fbme| assume that you have measured the approximate localization error in advance.
+    \item saSPT does not provide a graphical user interface (GUI). The usage is intended to be simple enough for a basic knowledge of Python to suffice when writing scripts that use it. See the scripts in \verb|examples| for examples of how to use saSPT, and section \ref{sect:statearray} for more details.
+\end{itemize}
+
+\subsection{Installation}
+
+saSPT is a Python package that requires \verb|numpy|, \verb|pandas|, \verb|tqdm|, \verb|scipy|, \verb|matplotlib|, and optionally \verb|matplotlib_scalebar| (if you want scalebars on your plots).
+If you are using \verb|conda| as a package manager, an
+environment with most of these dependencies can be found
+\href{https://github.com/alecheckert/quot/blob/master/quot_env.yml}{here}. The exception is 
+\verb|matplotlib_scalebar|, which can get via \verb|pip| 
+(\verb|pip install matplotlib_scalebar|).
+
+Once you have the required dependencies, you can install saSPT with these steps:
+
+1. Clone the saSPT repo:
+\begin{verbatim}
+    git clone https://gitlab.com/alecheckert/saspt; cd saspt
+\end{verbatim}
+2. Install saSPT:
+\begin{verbatim}
+    python setup.py develop
+\end{verbatim}
+3. Run some examples to make sure it works:
+\begin{verbatim}
+    python examples/example_state_arrays.py
+\end{verbatim}
+
+\subsection{Expected input format}
+
+saSPT expects trajectories as a CSV file, each row encoding a separate
+detection, with the following columns at minimum:
+\begin{itemize}
+    \item \verb|y|: the y-coordinate of the detection in pixels
+    \item \verb|x|: the x-coordinate of the detection in pixels
+    \item \verb|frame|: the frame index of the detection in pixels (an integer)
+    \item \verb|trajectory|: the index of the trajectory to which this detection has been assigned (an integer)
+\end{itemize}
+
+Variations on these names are \emph{not} tolerated.
+If other columns are present, they are ignored by saSPT.
+The order of the columns doesn't matter.
+
+Examples of the expected input for saSPT can be found in the 
+\verb|examples/u2os_ht_nls_7.48ms| and \verb|examples/u2os_rara_ht_7.48ms|
+directories.
+
+\subsection{Examples}
+
+A set of example scripts using saSPT can be found in the 
+\verb|examples| folder of the repo. These use two experimental
+saSPT datasets collected by the authors. The expected output
+for each script is stored under the \verb|examples/expected_outputs|
+directory.
+
+\subsection{The StateArray object}\label{sect:statearray}
+
+This section describes the \verb|saspt.StateArray| object in more detail.
+This class is responsible for inferring the posterior of a state array
+given an observed set of trajectories, and also provies other useful methods
+and attributes.
+
+\subsubsection{Instantiating a StateArray}
+
+To instantiate a StateArray, import the class and pass it your trajectories
+along with the parameters for your tracking experiment:
+\begin{verbatim}
+    import numpy as np
+    from saspt import load_tracks, StateArray
+
+    # Load some trajectories
+    trajectories = load_tracks('path/to/some/trajectory/CSVs')
+
+    # Make a StateArray
+    sa = StateArray(
+        trajectories,
+        likelihood="rbme",   # the likelihood function to use
+        pixel_size_um=0.16,  # size of pixels in microns
+        frame_interval=0.00748, # frame interval in seconds
+        start_frame=1000,    # disregard trajectories before frame 1000
+        dz=0.7,              # focal depth is ~0.7 microns
+        max_iter=500         # do 500 iterations of inference
+    )
+\end{verbatim}
+The `likelihood` argument defines the kind of state grid over which
+we infer the posterior. saSPT supports four kinds of likelihood functions:
+\verb|rbme|, \verb|gamma|, \verb|rbme_marginal|, and \verb|fbme|. All of
+the experiments in the
+\href{https://doi.org/10.1101/2021.05.03.442482}{saSPT paper} used
+the `rbme` likelihood, and the other options may be considered experimental.
+
+The four supported likelihood functions correspond to the following parameters:
+\begin{itemize}
+    \item \verb|rbme|: the diffusion coefficient for regular Brownian motion and the localization error
+    \item \verb|gamma|: the diffusion coefficient for regular Brownian motion (gamma approximation)
+    \item \verb|rbme_marginal|: the diffusion coefficient for regular Brownian motion, marginalized on localization error
+    \item \verb|fbme|: the diffusion coefficient and Hurst parameter for fractional Brownian motion with known localization error
+\end{itemize}
+
+When getting started with saSPT, we recommend sticking to the \verb|rbme|
+likelihood as it is by far the best tested and can be compared with previous
+results.
+
+\subsubsection{Attributes}
+
+The \verb|StateArray| class has the following attributes:
+\begin{itemize}
+    \item \verb|support|: a tuple of \verb|numpy.ndarray| that give the set of parameters on which this state array is defined. For example, if we choose \verb|likelihood = 'rbme'|, then the first element of this tuple is a set of diffusion coefficients while the second is a set of localization errors. 
+    \item \verb|track_indices|: a \verb|numpy.ndarray| that gives the trajectory index for each (non-singleton) trajectory considered by the state array. These indices are obtained directly from the input \verb|trajectories| dataframe. Note that one trajectory index can potentially be repeated multiple times in \verb|track_indices| if that trajectory was split into smaller pieces prior to inference (see ``splitsize'' in \ref{sect:other_params}). 
+    \item \verb|n_jumps|: a \verb|numpy.ndarray| that gives the number of jumps observed in each (non-singleton) trajectory. This also defines the weight that the trajectory contributes to inference of state occupations.
+    \item \verb|L|: a \verb|numpy.ndarray|, the raw likelihood function evaluated on each trajectory for each point in the state array. For example, if \verb|likelihood = 'rbme'|, then \verb|L[i,j,k]| gives the likelihood function evaluated on trajectory \verb|i| at diffusion coefficient \verb|j| and localization error \verb|k|. 
+    \item \verb|aggregated_likelihood|: a \verb|numpy.ndarray| that gives the likelihood function marginalized over all trajectories, then normalized. This provides a na{\"i}ve estimate of the state occupations, and can be considered a drop-in replacement for MSD histograms that is not prone to the same sampling biases. 
+    \item \verb|posterior|: the posterior distribution as a tuple of \verb|numpy.ndarray|. The first element is the posterior distribution over the trajectory-state assignments (expressed as a categorical probability for each trajectory), the second element is the posterior distribution over the state occupations (expressed as the parameter to a Dirichlet distribution), and the third element is the mean of the posterior over state occupations.
+\end{itemize}
+
+The most important output of the \verb|StateArray| is the third element of 
+\verb|StateArray.posterior|, the posterior mean of the state occupations. 
+Each point in this array gives the estimated occupation of the state with the
+corresponding parameters.
+
+For example, say we wanted to marginalize the posterior distribution on 
+localization error (treating it as a nuisance parameter) and then get the
+estimated fraction of trajectories with diffusion coefficients between 
+0.1 and 1.0 $\mu$m$^{2}$ s$^{-1}$. Then we could do
+\begin{verbatim}
+    # Get the support for this state array
+    diff_coefs, loc_errors = sa.support
+
+    # Estimate state occupations by taking the posterior mean
+    _, _, posterior_mean = sa.posterior
+
+    # Marginalize out localization error
+    posterior_mean_marg = posterior_mean.sum(axis=1)
+
+    # Calculate the total state occupation between diffusion 
+    # coefficients 0.1 and 1.0 squared microns per second
+    print(posterior_mean_marg[np.logical_and(
+        diff_coefs >= 0.1,
+        diff_coefs <= 1.0
+    )])
+\end{verbatim}
+
+\subsubsection{Defining the support for a state array directly}
+
+The support for the state array can be set manually during 
+\verb|StateArray| instantiation:
+\begin{verbatim}
+    # Define the set of diffusion coefficients on which to define
+    # the state array
+    diff_coefs = np.logspace(-2.0, 2.0, 301)
+    
+    # Define the set of localization errors on which to define the 
+    # state array
+    loc_errors = np.linspace(0.01, 0.62, 0.02)
+    
+    # Instantiate the StateArray on this support
+    sa = StateArray(
+        trajectories,
+        likelihood="rbme",
+        pixel_size_um=0.16,
+        frame_interval=0.00748,
+        start_frame=1000,
+        dz=0.7,
+        max_iter=500,
+        diff_coefs=diff_coefs,
+        loc_errors=loc_errors
+    )
+\end{verbatim}
+
+\subsubsection{Other instantiation parameters}\label{sect:other_params}
+
+The \verb|StateArray| class also provides the user the ability to set 
+a variety of other parameters that affect inference. Unless there is 
+good reason or the user is experienced, it is recommend \emph{not} to 
+change these parameters.
+
+These additional parameters are:
+\begin{itemize}
+    \item \verb|max_jumps_per_track|: the maximum number of jumps to consider from any given trajectory. If a trajectory surpasses this number, jumps after the limit are ignored (the trajectory is truncated). By default, this is set to \verb|None| and has no effect.
+    \item \verb|splitsize|: the size of the pieces into which trajectories are split prior to inference (in \# of jumps). Since the inferential weight of each trajectory scales with the number of jumps, trajectory splitting prevents any single trajectory from exerting too strong an influence on posterior estimation, which is especially important in the presence of tracking errors. It also improves accuracy in the presence of state transitions that have kinetics similar to the frame interval. The default \verb|splitsize| is 8.
+    \item \verb|pseudocount_frac|: the number of pseudocounts per state in the prior, expressed as a fraction of the total number of jumps in the set of trajectories. The larger the value of \verb|pseudocount_frac|, the harder incoming trajectories have to work in order to cause the posterior distribution to depart from the prior. In addition, the number of pseudocounts per state is never allowed to dip below a hard value set by \verb|saspt.constants.MIN_PSEUDOCOUNTS|. This is a safety feature to prevent spurious results when saSPT is run with too few trajectories.
+    \item \verb|convergence|: criterion for convergence in terms of the parameter to the updating Dirichlet distribution over state occupations. By default 0, so that we run the maximum number of iterations (\verb|max_iter|).
+\end{itemize}
+
+\subsection{Units}
+
+Where unspecified, units in saSPT are always the following:
+\begin{itemize}
+    \item \emph{time}: seconds
+    \item \emph{distance}: $\mu$m (``microns'')
+    \item \emph{diffusion coefficient}: $\mu$m$^{2}$ s$^{-1}$
+    \item \emph{localization error}: $\mu$m (root 1D localization variance)
+\end{itemize}
+
+\section{Description of algorithm}
+
+In this section, we describe the underlying model for saSPT and outline the 
+inference method.
+
+\subsection{State array model}
+
+saSPT represents a set of trajectories as a \emph{mixture model}. In this kind of model,
+each trajectory is a random variable that is generated in a two-step process:
+\begin{enumerate}
+	\item First, draw a random \emph{state} from a distribution over states. Each state has an associated set of \emph{state parameters} - for example, the diffusion coefficient for a regular Brownian motion (RBM) state. We represent the fractional occupation of state $j$ as $\tau_{j}$ and its state parameters as $\theta_{j}$. 
+	\item Next, generate a random trajectory given those state parameters. For instance, in the case of RBM, generate a trajectory with the diffusion coefficient corresponding to the state selected in step (1).
+\end{enumerate}
+
+We can represent the trajectory-state assignment in step (1) as a random matrix $\vec{Z}$, 
+where $Z_{ij} = 1$ if trajectory $i$ comes from state $j$ and $Z_{ij} = 0$ otherwise. Each
+row (specific to a trajectory $i$) has exactly one value equal to 1. \newline
+
+Without knowledge of $\vec{Z}$, the probability to draw some trajectory $x$ given state occupations 
+$\boldsymbol{\tau}$ and state parameters $\boldsymbol{\theta}$ is proportional to
+\begin{equation}\label{eq:generative_model}
+	p \left( x | \boldsymbol{\tau}, \boldsymbol{\theta} \right) \propto \sum\limits_{j=1}^{K} \tau_{j} f_{X}(x | \theta_{j})
+\end{equation}
+
+where $K$ is the total number of states. $f_{X}(x | \theta_{j})$ is the 
+\emph{trajectory likelihood}, providing the probability density over trajectories
+given state parameters $\theta_{j}$, and is determined
+by the diffusion model (Brownian, fractional Brownian, etc.). \newline
+
+In a real SPT experiment, we observe a large number of trajectories
+$\vec{X} = (x_{1}, ..., x_{N})$, where each $x_{i}$ is a separate trajectory (using
+whatever representation is convenient for the likelihood function). 
+Our goal is to learn about $K$, $\boldsymbol{\tau}$,
+$\boldsymbol{\theta}$, and $\vec{Z}$ given this set of trajectories. While there are many ways to do this,
+the approach taken by Bayesian statistics is to let $\boldsymbol{\tau}$, $\boldsymbol{\theta}$,
+and $\vec{Z}$ be random variables and then calculate their conditional distribution given $\vec{X}$ using
+Bayes' theorem:
+\begin{align}\begin{split}\label{eq:bayes_theorem}
+	p \left( \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} | \vec{X} \right) &= \frac{
+		p \left( \vec{X} | \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} \right) p \left( \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} \right)
+	}{
+		p \left( \vec{X} \right)
+	} \\
+	&= \frac{
+		p \left( \vec{X} | \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} \right) p \left( \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} \right)
+	}{
+		\int p \left( \vec{X} | \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} \right) p \left( \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} \right) \: \D \boldsymbol{\tau} \: \D \boldsymbol{\theta} \: \D \vec{Z} 
+	}
+\end{split}\end{align}
+
+(As it stands, this equation assumes knowledge of $K$, the number of states. We could 
+incorporate $K$ directly into this equation as another parameter, or use posterior criteria like the evidence
+lower bound (ELBO) to determine $K$ from several runs of inference. As we will see, 
+state arrays assume a large constant $K$ and allow states to be ``weeded out'' by 
+the inference routine.) \newline
+
+Once we have this conditional distribution, we can then derive a working estimate for 
+$\boldsymbol{\theta}$, $\boldsymbol{\tau}$, and $\vec{Z}$ by taking the mean of this conditional 
+distribution:
+\[
+	\boldsymbol{\tau}_{\text{est}}, \boldsymbol{\theta}_{\text{est}} = \mathbb{E} \left[ \boldsymbol{\tau}, \boldsymbol{\theta} | \vec{X} \right]
+\]
+
+There are other ways to derive a working estimate, but we use the conditional mean
+because it is fairly conservative. \newline
+
+\subsection{Trajectory likelihoods in saSPT}
+
+The choice of trajectory likelihood function in equation \ref{eq:generative_model} 
+reflects what we want to learn about the particles in the experiment. For instance, 
+if we wanted to determine whether the motion of a particle is directional or 
+adirectional, we might choose a likelihood function with a parameter that determines
+the directionality of the motion. \newline
+
+A very common trajectory likelihood function for pure diffusive mixtures (without any
+net direction to the motion) is \emph{regular Brownian motion} (RBM), first derived in a 
+physical context by Einstein in 1905. RBM has a single parameter,
+the diffusion coefficient, that parametrizes the variance of the jumps made by a 
+diffusing particle over subsequent frame intervals. \newline
+
+Specifically, if $\vec{X}$ and $\vec{Y}$ are the $x$- and $y$-coordinates of a
+trajectory generated by RBM with diffusion coefficient $D$, where $X_{0} = Y_{0} = 0$, 
+that is observed at regular frame intervals of $\Delta t$, then 
+\begin{align}\begin{split}\label{eq:rbm_likelihood}
+	\vec{X}, \vec{Y} &\sim \mathcal{N} \left( \vec{0}, \boldsymbol{\Gamma}^{(\text{pos})} \right) \\
+	\Gamma_{ij}^{(\text{pos})} &= 2 D \Delta t \: \text{min} \left( i, j \right) \\
+	\text{Cov} \left( \vec{X}, \vec{Y} \right) &= \vec{0} 
+\end{split}\end{align}
+
+where $\mathcal{N} \left( \vec{0}, \boldsymbol{\Gamma}^{(\text{pos})} \right)$ is a multivariate
+normal random variable with mean zero (no net drift) and covariance matrix 
+$\boldsymbol{\Gamma}^{(\text{pos})}$. \newline
+
+Equation \ref{eq:rbm_likelihood} represents the trajectory as a set of \emph{coordinates}
+in $x$ and $y$. It is also possible to represent the trajectory as a set of \emph{jumps}
+along the $x$ and $y$ axis. A trajectory with $n$ coordinates along one axis 
+will have $n - 1$ jumps along that axis. If we let $\Delta \vec{X}$ and $\Delta \vec{Y}$
+be the jumps along the $x$ and $y$ axes respectively, then 
+\begin{align}\begin{split}\label{eq:rbm_likelihood_jumps}
+	\Delta \vec{X}, \Delta \vec{Y} &\sim \mathcal{N} \left( 
+		\vec{0},
+		\boldsymbol{\Gamma^{(\text{jumps})}}
+	\right) \\
+	\Gamma^{(\text{jumps})}_{ij} &= \begin{cases}
+		2 D \Delta t \qquad &\text{if  } \: i = j \\
+		0 \qquad &\text{otherwise}
+	\end{cases}
+\end{split}\end{align}
+
+Because this covariance matrix is diagonal, this likelihood can be represented in a 
+simpler way. Let $S_{i}$ be the sum of squared jumps for trajectory $i$, 
+so that if there are $L_{i}$ jumps in trajectory $i$, then
+\[
+	S_{i} = \sum\limits_{n=1}^{L_{i}} \left( \Delta X_{n}^{2} + \Delta Y_{n}^{2} \right)
+\]
+
+Then 
+\[
+	S_{i} \sim \text{Gamma} \left( L_{i}, 4 D \Delta t \right)
+\]
+
+where $\text{Gamma} \left( L_{i}, 2 D \Delta t \right)$ is a gamma distribution,
+corresponding to the PDF
+\begin{equation}\label{eq:rbm_gamma_likelihood}
+	f_{S_{i}}(s | D) = \begin{cases}
+		\frac{
+			s^{L_{i} - 1} e^{-\frac{s}{4 D \Delta t}}
+		}{
+			\Gamma \left( L_{i} \right) (4 D \Delta t)^{L_{i}}
+		} \qquad &\text{if } \: s \geq 0 \\
+		0 \qquad &\text{otherwise}
+	\end{cases}
+\end{equation}
+
+We rarely measure pure RBM in SPT experiments due to \emph{localization error},
+the uncertainty associated with the measurement of a particle's position. If we model
+localization error as a normally distributed random variable $\vec{W}$ with mean 0 and variance 
+$\sigma_{\text{loc}}^{2}$, then an RBM with localization error (RBME) can be defined as 
+$\tilde{\vec{X}} = \vec{X} + \vec{W}$, where 
+\begin{align*}
+	\vec{W} &\sim \mathcal{N} \left( \vec{0}, \sigma_{\text{loc}}^{2} \vec{I} \right)
+\end{align*}
+
+Then
+\begin{align}\begin{split}\label{eq:rbme_likelihood}
+	\tilde{\vec{X}}, \tilde{\vec{Y}} &\sim \mathcal{N} \left( \vec{0}, \tilde{\boldsymbol{\Gamma}}^{(\text{pos})} \right) \\
+	\tilde{\Gamma}^{(\text{pos})}_{ij} &= \begin{cases}
+		2 D \Delta t \: \text{min} (i, j) + \sigma_{\text{loc}}^{2} \qquad &\text{if } \: i = j \\
+		2 D \Delta t \: \text{min} (i, j) \qquad &\text{otherwise}
+	\end{cases}
+\end{split}\end{align}
+
+and the corresponding jump likelihoods are 
+\begin{align}\begin{split}\label{eq:rbme_likelihood}
+	\Delta \tilde{\vec{X}}, \Delta \tilde{\vec{Y}} &\sim \mathcal{N} \left( \vec{0}, \tilde{\boldsymbol{\Gamma}}^{(\text{jump})} \right) \\
+	\tilde{\Gamma}^{(\text{jump})}_{ij} &= \begin{cases}
+		2 (D \Delta t + \sigma_{\text{loc}}^{2} ) \qquad &\text{if } \: i = j \\
+		- \sigma_{\text{loc}}^{2} \qquad &\text{if } \: \left| i - j \right| = 1 \\
+		0 \qquad &\text{otherwise}
+	\end{cases}
+\end{split}\end{align}
+
+so that the full PDF for a trajectory with jumps $\Delta \tilde{\vec{X}}$, 
+$\Delta \tilde{\vec{Y}}$ is 
+\begin{equation}\label{eq:rbme_pdf}
+	f_{\Delta \tilde{\vec{X}}, \Delta \tilde{\vec{Y}}} \left( \vec{x}, \vec{y} | D, \sigma_{\text{loc}}^{2} \right) = \frac{
+		\exp \left( - \frac{1}{2} \left( 
+			\vec{x}^{T} \tilde{\boldsymbol{\Gamma}}^{-1} \vec{x} + 
+			\vec{y}^{T} \tilde{\boldsymbol{\Gamma}}^{-1} \vec{y}
+		\right) \right)
+	}{
+		2 \pi \: \text{det} \left( \tilde{\boldsymbol{\Gamma}}^{(\text{jump})} \right)
+	}
+\end{equation}
+
+This corresponds to the \verb|rbme| likelihood in saSPT. \newline
+
+Notice that, unlike in the case of RBM without error, the off-diagonal components of 
+the covariance matrix are nonzero. If $\sigma_{\text{loc}}^{2} << D \Delta t$, then we
+can neglect these off-diagonal terms to yield an approximate likelihood analogous to 
+equation \ref{eq:rbm_gamma_likelihood}:
+\begin{equation}\label{eq:rbme_gamma_approximation}
+	f_{S_{i}} (s | D, \sigma_{\text{loc}}^{2}) = \begin{cases}
+		\frac{
+			s^{L_{i} - 1} e^{-\frac{s}{4 (D \Delta t + \sigma_{\text{loc}}^{2}) }}
+		}{
+			\Gamma \left( L_{i} \right) (4 D \Delta t + \sigma_{\text{loc}}^{2} )^{L_{i}}
+		} \qquad &\text{if } \: s \geq 0 \\
+		0 \qquad &\text{otherwise}
+	\end{cases}	
+\end{equation}
+
+This corresponds to the \verb|gamma| likelihood in saSPT. \newline
+
+Finally, we can venture outside the realm of RBM by considering other types of motion.
+One of the most useful extensions of RBM is \emph{fractional Brownian motion} (FBM), which 
+allows for nonzero covariance between the jumps (outside of simple localization error). 
+Specifically, FBM endows the motion with an additional parameter called the 
+\emph{Hurst parameter}, and the jump likelihood
+\begin{align}\begin{split}\label{eq:fbme_likelihood}
+	\Delta \tilde{\vec{X}}, \Delta \tilde{\vec{Y}} &\sim \mathcal{N} \left( 
+		\vec{0}, \tilde{\boldsymbol{\Gamma}}^{(\text{fbm jumps})}
+	\right) \\
+	\tilde{\Gamma}^{(\text{fbm jumps})}_{ij} &= \begin{cases}
+		g(i,j) + 2 \sigma_{\text{loc}}^{2} \qquad &\text{if } \: i = j \\
+		g(i,j) - \sigma_{\text{loc}}^{2} \qquad &\text{if } \: \left| i - j \right| = 1 \\
+		g(i,j) \qquad &\text{otherwise}
+	\end{cases} \\
+	g(i, j) &= D \Delta t^{2 H} \left( \left| i - j + 1 \right|^{2H} + \left| i - j - 1 \right|^{2H} - 2 \left| i - j \right|^{2H} \right)
+\end{split}\end{align}
+
+This corresponds to the \verb|fbme| likelihood in saSPT. \newline
+
+While the underlying representation for a trajectory is usually the set of 
+jumps $\Delta \tilde{\vec{X}}$ and $\Delta \tilde{\vec{Y}}$, for the purposes
+of simplicity in this manual we often write the $i^{\text{th}}$ trajectory simply 
+as $X_{i}$. 
+
+\subsection{Inferring the posterior distribution}
+
+The problem with equation \ref{eq:bayes_theorem} is that the denominator is 
+intractable for all trajectory likelihoods of interest. Solutions to this problem
+mostly fall into two categories:
+\begin{enumerate}
+	\item Sample from equation \ref{eq:bayes_theorem} numerically, using the samples to build up an estimate of the posterior distribution.
+	\item Construct a tractable approximation to \ref{eq:bayes_theorem}. 
+\end{enumerate}
+
+Variational Bayesian methods fall into the latter category. The idea is to construct an 
+approximation $q(\boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z}) \approx p \left( \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z} | \vec{X} \right)$
+that satisfies the following criteria:
+\begin{align*}
+	q(\boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z}) &= q(\vec{Z}) q(\boldsymbol{\tau}, \boldsymbol{\theta}) \\
+	q(\boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z}) &= \underset{\boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z}}{\text{argmax}} \: L [q]
+\end{align*}
+
+where $L[q]$ is the variational lower bound, also known as the evidence lower bound (ELBO):
+\[
+	L[q] = \int q(\boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z}) \log \left[ 
+		\frac{
+			p(\vec{X}, \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z})
+		}{
+			q(\boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z})
+		}
+	\right] \D \boldsymbol{\tau} \: \D \boldsymbol{\theta} \: \D \vec{Z}
+\]
+
+There are many resources that justify the use of $L[q]$ as the criterion for selecting
+$q$; here we simply remark that $L[q]$ is maximized when $q$ exactly matches the true
+posterior distribution. Unlike criteria for maximization like the likelihood 
+$p (\vec{X} | \boldsymbol{\tau}, \boldsymbol{\theta}, \vec{Z})$, maximization of $L[q]$ 
+balances the ability of the model to describe the data against the complexity of the 
+model. As a result, variational methods favor sparse mixture models with most elements
+of the state occupation vector $\boldsymbol{\tau}$ close to 0 when possible. This stands
+in sharp contrast to maximum likelihood methods, which tend to exploit all of the parameters
+of the model in order to explain the observed data. \newline
+
+State arrays rely on this property of variational methods by selecting a large $K$ and 
+fixing the state parameters $\boldsymbol{\theta}$ on a grid (essentially replacing the 
+prior $p(\boldsymbol{\theta})$ with delta functions). For instance, if we are using a 
+state array for RBME, our grid may span a range of diffusion coefficients and localization
+error variances. \newline
+
+Then $\boldsymbol{\theta}$ drops out from consideration, so our sole goal is to infer
+$\boldsymbol{\tau}$ and $\vec{Z}$. Finally, we choose a Dirichlet distribution for 
+the prior over $\boldsymbol{\tau}$:
+\[
+	p \left( \boldsymbol{\tau} \right) = \text{Dirichlet} \left( \frac{\alpha}{K}, ..., \frac{\alpha}{K} \right)
+\]
+
+where $\alpha$ is the strength of the prior. $\alpha$ is also known as the number of 
+pseudocounts in the prior. \newline
+
+Under these conditions, the posterior distribution can be specified with the system of 
+equations
+\begin{align*}
+	q(\boldsymbol{\tau}) &= \text{Dirichlet} \left( n_{1}, ..., n_{K} \right) \\
+	q(\vec{Z}) &= \prod\limits_{i=1}^{N} \prod\limits_{j=1}^{K} r_{ij}^{Z_{ij}} \\
+	r_{ij} &= \frac{\rho_{ij}}{\sum\limits_{k=1}^{K} \rho_{ik}} \\
+	\rho_{ij} &= f_{X} \left( X_{i} | \theta_{j} \right) e^{\psi (n_{j})} \\
+	n_{j} &= \frac{\alpha}{K}  + \sum\limits_{i=1}^{N} \frac{d L_{i}}{2} \mathbb{E}_{\vec{Z} \sim q(\vec{Z})} \left[ Z_{ij} \right] 
+\end{align*}
+
+where $\psi(x) = \D \Gamma (x) / \D x$ is the digamma function. Notice that 
+$\mathbb{E} \left[ Z_{ij} \right] = r_{ij}$. So the scheme amounts to 
+estimating the Dirichlet parameter $\vec{n}$ and the trajectory-state assignment
+probabilities $\vec{r}$. \newline
+
+We can infer $\vec{n}$ and $\vec{r}$ by alternating between them according to the 
+following algorithm:
+\begin{enumerate}
+	\item Initialize:
+	\begin{enumerate}
+		\item Evaluate $f_{X}(X_{i}|\theta_{j})$ for each trajectory $i$ and each state $j$. Represent these likelihoods as an $N$-by-$K$ matrix $\vec{A}$. 
+		\item Set $r_{ij}^{(0)} = A_{ij} / \sum\limits_{k=1}^{K} A_{ik}$. 
+	\end{enumerate}
+	\item For each iteration $t = 1, 2, ...$:
+	\begin{enumerate}
+		\item For each state $j$, evaluate $n_{j}^{(t)} = \frac{\alpha}{K} + \sum\limits_{i=1}^{N} \frac{d L_{i}}{2} r_{ij}^{(t-1)}$.
+		\item Evaluate the matrix $\vec{r}^{(t)}$ such that 
+		\[
+			r_{ij}^{(t)} = \frac{
+				A_{ij} e^{\psi (n_{j}^{(t)})}
+			}{
+				\sum\limits_{k=1}^{K} A_{ik} e^{\psi (n_{k}^{(t)})}
+			}
+		\]
+	\end{enumerate}
+	\item After convergence, the posterior distribution can be summarized with the posterior mean, which is 
+	\begin{align*}
+		\mathbb{E} \left[ \tau_{j} \right] &= \frac{n_{j}}{\sum\limits_{k=1}^{K} n_{k}} \\
+		\mathbb{E} \left[ Z_{ij} \right] &= r_{ij}
+	\end{align*}
+\end{enumerate}
+
+In addition, saSPT calculates a correction to the state occupations that accounts for the 
+increased chance that fast-moving particles will diffuse out of the focal volume in a single
+frame interval.
+
+\subsection{Aggregated likelihood}
+
+An important na{\"i}ve estimate for the state occupations can be obtained from the initialization
+$\vec{r}^{(0)}$ in the algorithm above. This is essentially the estimate for the trajectory-state
+assignments under the uniform prior over the state occupations. We can also estimate the 
+na{\"i}ve state occupations from this via
+\begin{align*}
+	n_{j}^{(0)} &= \frac{\alpha}{K} + \eta_{j}^{-1} \sum\limits_{i=1}^{N} \frac{d L_{i}}{2} r_{ij}^{(0)} \\
+	\text{estimated occupation of state $j$} &= \frac{n_{j}}{\sum\limits_{k=1}^{K} n_{k}} 
+\end{align*}
+
+where $\eta_{j}$ is a suitable correction factor for defocalization of state $j$.
+These ``aggregated likelihoods'' are highly useful for comparing variability in the diffusive
+profile for different files in the same dataset alongside the posterior mean.
+
+
+\end{document}

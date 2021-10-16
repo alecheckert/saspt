@@ -1,0 +1,15 @@
+name: saspt_env
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - numpy
+  - scipy
+  - scikit-image
+  - matplotlib
+  - pandas
+  - tqdm
+  - pytest
+  - dask
+  - seaborn
