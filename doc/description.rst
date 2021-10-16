@@ -1,3 +1,5 @@
+.. _description_label:
+
 =================
 Why state arrays?
 =================

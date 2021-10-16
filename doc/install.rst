@@ -25,7 +25,7 @@ Option 2: install from source
     git clone https://github.com/alecheckert/saspt.git
     cd saspt
 
-2. Build and switch to the ``saspt_env`` conda environment:
+2. If you are using the ``conda`` package manager, you build and switch to the ``saspt_env`` conda environment with all the necessary dependencies:
     
 .. code-block:: bash
 
