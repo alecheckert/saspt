@@ -1,3 +1,10 @@
-""" See setup.cfg; install via `pip install .` from repo directory """
+""" Everything is in setup.cfg.
+
+If installing from local repo, use
+    pip install .
+
+from the top-level repo directory.
+
+"""
 from setuptools import setup
 setup()
