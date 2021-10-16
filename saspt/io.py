@@ -69,9 +69,9 @@ def sample_detections() -> pd.DataFrame:
     -------
         pandas.DataFrame with columns FRAME, TRACK, PY, and PX
     """
-    return load_detections_from_file(os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "samples", "sample_tracks.csv"))
+    package_dir = os.path.split(os.path.abspath(__file__))[0]
+    path = os.path.join(package_dir, "samples", "sample_tracks.csv")
+    return load_detections_from_file(path)
 
 def concat_detections(*detections: pd.DataFrame) -> pd.DataFrame:
     """ Join some detection DataFrames together into a larger DataFrame
