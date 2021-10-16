@@ -32,8 +32,20 @@ class TrajectoryGroup:
                             longer than this are split into smaller pieces.
 
     """
+    # Column in TrajectoryGroup.detections encoding the original trajectory
+    # index before preprocessing
     ORIG_TRACK = "orig_trajectory"
+
+    # Column in TrajectoryGroup.detections encoding the original detection
+    # index before preprocessing
     DETECT_INDEX = "detect_index"
+
+    # Names of statistics in TrajectoryGroup.raw_track_statistics and 
+    # TrajectoryGroup.processed_track_statistics
+    statistic_names = ['n_tracks', 'n_jumps', 'n_detections',
+        'mean_track_length', 'max_track_length', 'fraction_singlets',
+        'fraction_unassigned', 'mean_jumps_per_track', 'mean_detections_per_frame',
+        'max_detections_per_frame', 'fraction_of_frames_with_detections']
 
     def __init__(self, detections: pd.DataFrame, pixel_size_um: float,
         frame_interval: float, splitsize: int=DEFAULT_SPLITSIZE,
@@ -315,16 +327,6 @@ class TrajectoryGroup:
                     / n_frames if len(self.detections)>0 else 0.0,
             }
         return self._processed_track_statistics
-
-    @classmethod
-    @property 
-    def statistic_names(self) -> List[str]:
-        """ The names of each statistic in the dicts returned by 
-        *raw_track_statistics* and *processed_track_statistics*. """
-        return ['n_tracks', 'n_jumps', 'n_detections', 'mean_track_length',
-            'max_track_length', 'fraction_singlets', 'fraction_unassigned',
-            'mean_jumps_per_track', 'mean_detections_per_frame',
-            'max_detections_per_frame', 'fraction_of_frames_with_detections']
 
     #############
     ## METHODS ##
