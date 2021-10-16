@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 from .constants import RBME, RBME_MARGINAL, GAMMA, FBME, LIKELIHOOD_TYPES
 from .dataset import StateArrayDataset
 from .io import load_detections, concat_detections, sample_detections

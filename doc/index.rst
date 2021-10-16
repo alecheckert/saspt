@@ -11,6 +11,7 @@ Welcome to saSPT's documentation!
     :caption: Contents:
     :glob:
 
+    install
     getting_started
     description
     model
