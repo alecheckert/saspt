@@ -1,8 +1,10 @@
 # saspt
 
+![](doc/_static/logo.png?raw=True)
+
 State arrays for single particle tracking
 
-`saspt` is a simple Python tool that identifies subpopulations in noisy single particle tracking (SPT) data. It is **under active development**. See the [Documentation](https://saspt.readthedocs.io/en/latest/) or [User Guide](https://github.com/alecheckert/saspt/blob/main/UserGuide.pdf) for more info.
+`saspt` is a simple Python tool that identifies subpopulations in noisy single particle tracking (SPT) data. It is **under active development**. See the [Documentation](https://saspt.readthedocs.io/en/latest/) for more info. 
 
 ## Install with pip
 
