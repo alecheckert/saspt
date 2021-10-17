@@ -221,25 +221,71 @@ class StateArrayDataset:
         return self._processed_track_statistics
 
     @property 
+    def naive_occs(self) -> np.ndarray:
+        """ Naive estimate for the occupations of each state on the parameter grid
+        for each file in this StateArrayDataset.
+
+        Unnormalized, so that the total "occupation" across all states per
+        file is equal to the number of jumps observed in that file.
+
+        returns
+        -------
+            numpy.ndarray of shape (self.n_files, *self.shape)
+        """
+        if not hasattr(self, "_naive_occs"):
+            if self.n_files > 0:
+                self._naive_occs = np.asarray(self.parallel_map(
+                    self.calc_naive_occs,
+                    self.paths[self.path_col],
+                    progress_bar=self.progress_bar,
+                ))
+            else:
+                self._naive_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
+        return self._naive_occs
+
+    @property 
+    def posterior_occs(self) -> np.ndarray:
+        """ Posterior mean estimate for the occupations of each state on the
+        parameter grid for each file in this StateArrayDataset.
+
+        Unnormalized, so that the total "occupation" across all states per
+        file is equal to the number of jumps observed in that file.
+
+        returns
+        -------
+            numpy.ndarray of shape (self.n_files, *self.shape)
+        """
+        if not hasattr(self, "_posterior_occs"):
+            if self.n_files > 0:
+                self._posterior_occs = np.asarray(self.parallel_map(
+                    self.calc_posterior_occs,
+                    self.paths[self.path_col],
+                    progress_bar=self.progress_bar,
+                ))
+            else:
+                self._posterior_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
+        return self._posterior_occs
+
+    @property 
     def marginal_naive_occs(self) -> np.ndarray:
         """ Likelihood functions for each movie in this dataset, marginalized
         on the diffusion coefficient. This provides a naive estimate of the 
         occupation of each state.
 
-        Note that each row of the output array is unnormalized and has a sum
-        equal to the number of jumps observed in that file.
+        Unnormalized, so that the total "occupation" across all states per
+        file is equal to the number of jumps observed in that file.
 
         returns
         -------
             2D numpy.ndarray of shape (n_files, n_diff_coefs)
         """
         if not hasattr(self, "_marginal_naive_occs"):
-            self._marginal_naive_occs = np.asarray(self.parallel_map(
-                self.calc_marginal_naive_occs,
-                self.paths[self.path_col],
-                "calculating naive occupations for each movie...",
-                progress_bar=self.progress_bar,
-            )).reshape((self.n_files, self.n_diff_coefs))
+            if "diff_coef" not in self.likelihood.parameter_names:
+                self._marginal_naive_occs = np.zeros((self.n_files, 0), dtype=np.float64)
+            else:
+                i = self.likelihood.parameter_names.index("diff_coef")
+                axes = [j+1 for j in range(len(self.likelihood.parameter_names)) if j != i]
+                self._marginal_naive_occs = self.naive_occs.sum(axis=tuple(axes))
         return self._marginal_naive_occs
 
     @property 
@@ -247,18 +293,21 @@ class StateArrayDataset:
         """ Posterior mean state occupations marginalized on diffusion coefficient
         for each file in this dataset.
 
+        Unnormalized, so that the total "occupation" across all states per
+        file is equal to the number of jumps observed in that file.
+
         returns
         -------
             numpy.ndarray of shape (n_files, n_diff_coefs). Note that the occupations
                 for file *i* are scaled by the total number of jumps in that file.
         """
         if not hasattr(self, "_marginal_posterior_occs"):
-            self._marginal_posterior_occs = np.asarray(self.parallel_map(
-                self.calc_marginal_posterior_occs,
-                self.paths[self.path_col],
-                "inferring posteriors for each movie...",
-                progress_bar=self.progress_bar,
-            )).reshape((self.n_files, self.n_diff_coefs))
+            if "diff_coef" not in self.likelihood.parameter_names:
+                self._marginal_posterior_occs = np.zeros((self.n_files, 0), dtype=np.float64)
+            else:
+                i = self.likelihood.parameter_names.index("diff_coef")
+                axes = [j+1 for j in range(len(self.likelihood.parameter_names)) if j != i]
+                self._marginal_posterior_occs = self.posterior_occs.sum(axis=tuple(axes))
         return self._marginal_posterior_occs
 
     @property
@@ -332,10 +381,40 @@ class StateArrayDataset:
     #############
 
     def clear(self):
-        """ Delete all cached attributes """
-        for attr in ["_n_files", "_marginal_naive_occs", "_marginal_posterior_occs"]:
+        """ Delete expensive cached attributes """
+        for attr in ["_n_files", "_naive_occs", "_posterior_occs"]:
             if hasattr(self, attr):
                 delattr(self, attr)
+
+    def calc_naive_occs(self, *track_paths: str) -> np.ndarray:
+        """
+        args
+        ----
+            track_paths :   paths to files with trajectories, readable by
+                            saspt.utils.load_detections
+
+        returns
+        -------
+            numpy.ndarray of shape *self.shape*, occupations scaled by the
+                total number of jumps observed for each SPT experiment
+        """
+        SA = self._init_state_array(*track_paths)
+        return SA.naive_occs
+
+    def calc_posterior_occs(self, *track_paths: str) -> np.ndarray:
+        """
+        args
+        ----
+            track_paths :   paths to files with trajectories, readable by
+                            saspt.utils.load_detections
+
+        returns
+        -------
+            numpy.ndarray of shape *self.shape*, mean posterior occupations
+                scaled by the total number of jumps observed for each SPT experiment
+        """
+        SA = self._init_state_array(*track_paths)
+        return SA.n_jumps * SA.posterior_occs
 
     def calc_marginal_naive_occs(self, *track_paths: str) -> np.ndarray:
         """ Calculate the likelihood function for a particular set of 
@@ -351,8 +430,8 @@ class StateArrayDataset:
             numpy.ndarray of shape *n_diff_coefs*, occupations scaled by the
                 total number of jumps observed in these trajectories
         """
-        SA = self._init_state_array(*track_paths)
-        return self.likelihood.marginalize_on_diff_coef(SA.naive_occs)
+        return self.likelihood.marginalize_on_diff_coef(
+            self.calc_naive_occs(*track_paths))
 
     def calc_marginal_posterior_occs(self, *track_paths: str) -> np.ndarray:
         """ Calculate the posterior mean state occupations for a particular
@@ -369,8 +448,8 @@ class StateArrayDataset:
                 by the total number of jumps observed in this set of 
                 trajectories
         """
-        SA = self._init_state_array(*track_paths)
-        return SA.n_jumps * self.likelihood.marginalize_on_diff_coef(SA.posterior_occs)
+        return self.likelihood.marginalize_on_diff_coef(
+            self.calc_posterior_occs(*track_paths))
 
     ##############
     ## PLOTTING ##

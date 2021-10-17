@@ -333,13 +333,33 @@ To get the naive and posterior state occupations for each file in this dataset:
     or ``sample_size`` parameters.
 
 These occupations are "marginal" in the sense that they've been marginalized onto the 
-parameter of interest in most SPT experiments, the diffusion coefficient. We can get
-the full, unmarginalized set of state occupations as a ``pandas.DataFrame``:
+parameter of interest in most SPT experiments: the diffusion coefficient. (You can 
+get the original, unmarginalized occupations via the ``StateArrayDataset.posterior_occs``
+and ``StateArrayDataset.naive_occs`` attributes.)
+
+The same information is also provided as a ``pandas.DataFrame``:
 
 .. code-block:: python
 
-    >>> occupations = SAD.occupations_dataframe
-    >>> print(occupations)
+    >>> occupations = SAD.marginal_posterior_occs_dataframe
+
+For example, imagine we want to calculate the posterior probability that a particle had
+a diffusion coefficient less than 0.5 :math:`\mu\text{m}^{2}`/sec for each file. We could
+do this by taking
+
+.. code-block:: python
+
+    >>> print(occupations.loc[occupations['diff_coef'] < 0.5].groupby(
+    ...   'filepath')['mean_posterior_occupation'].sum())
+    filepath
+    u2os_ht_nls_7.48ms/region_0_7ms_trajs.csv      0.188782
+    u2os_ht_nls_7.48ms/region_10_7ms_trajs.csv     0.103510
+    u2os_ht_nls_7.48ms/region_1_7ms_trajs.csv      0.091148
+    ...
+    u2os_rara_ht_7.48ms/region_7_7ms_trajs.csv     0.579444
+    u2os_rara_ht_7.48ms/region_8_7ms_trajs.csv     0.553111
+    u2os_rara_ht_7.48ms/region_9_7ms_trajs.csv     0.650187
+    Name: posterior_occupation, dtype: float64
 
 The ``StateArrayDataset`` provides a few plots to visualize these occupations:
 
@@ -356,7 +376,8 @@ while RARA-HaloTag has a much broader range of free diffusion coefficients with 
 immobile fraction (showing up at the lower end of the diffusion coefficient range). 
 
 The heat map plot is useful to judge how consistent the result is across SPT experiments in 
-the same condition.
+the same condition. We can also compare the variability using an alternative line plot 
+representation:
 
 .. code-block:: python
 
@@ -364,8 +385,6 @@ the same condition.
 
 .. image:: _static/posterior_line_plot.png
     :width: 400
-
-This is essentially an alternative presentation of the previous plot.
 
 .. code-block:: python
 
@@ -415,6 +434,6 @@ We can normalize and plot the results by doing:
 .. image:: _static/mean_posterior_occs_by_condition.png
     :width: 400
 
-The more trajectories we aggregate across files, the better our state occupation estimates
+The more trajectories we aggregate, the better our state occupation estimates
 become. ``saspt`` performs best when using large datasets with tens of thousands of 
 trajectories per condition.
