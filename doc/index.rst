@@ -17,6 +17,7 @@ Welcome to saSPT's documentation!
     model
     api/api
     faqs
+    reference
 
 .. py:currentmodule:: saspt
 
