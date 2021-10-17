@@ -8,7 +8,7 @@ State arrays for single particle tracking
 
 Currently in testing:
 ```
-python3 -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ saspt-test==0.1.5
+python3 -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ saspt-test
 ```
 
 ## Install from source

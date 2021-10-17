@@ -10,7 +10,7 @@ Quickstart
 
 .. note::
 
-    Want more code and less prose? Check out the `examples.py <https://github.com/alecheckert/saspt/blob/main/examples/examples.py>`_, a simple executable that demos most of stuff in this Quickstart.
+    Want more code and less prose? Check out `examples.py <https://github.com/alecheckert/saspt/blob/main/examples/examples.py>`_, a simple executable that demos most of stuff in this Quickstart.
 
 This is a quick guide to getting started with ``saspt``. It assumes you're familiar
 with single particle tracking (SPT), have seen mixture models before, and have 
