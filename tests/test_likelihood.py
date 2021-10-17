@@ -43,8 +43,8 @@ class TestLikelihoods(unittest.TestCase):
             assert isinstance(L.parameter_units, tuple)
             assert_isinstance_all(str, L.parameter_units)
 
-            assert isinstance(L.parameter_grid, tuple)
-            assert_isinstance_all(np.ndarray, L.parameter_grid)
+            assert isinstance(L.parameter_values, tuple)
+            assert_isinstance_all(np.ndarray, L.parameter_values)
 
             assert isinstance(L.shape, tuple)
             assert_isinstance_all(int, L.shape)
@@ -97,7 +97,7 @@ class TestLikelihoods(unittest.TestCase):
         for likelihood_type in LIKELIHOODS.keys():
             support = supports.get(likelihood_type)
             L = make_likelihood(likelihood_type, **self.kwargs, **support)
-            assert all(map(lambda p: p.shape[0] == 0, L.parameter_grid))
+            assert all(map(lambda p: p.shape[0] == 0, L.parameter_values))
 
             # Evaluate on some sample trajectories
             par_axes = tuple(range(len(L.shape)))

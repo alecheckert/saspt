@@ -117,9 +117,9 @@ class TestStateArray(unittest.TestCase):
         SA = StateArray(self.trajectories, likelihood, self.params)
         self.check_shapes(SA, self.trajectories, likelihood)
 
-    def test_posterior_occs_dataframe(self):
+    def test_occupations_dataframe(self):
         with StateArray(self.trajectories, self.likelihood, self.params) as SA:
-            df = SA.posterior_occs_dataframe 
+            df = SA.occupations_dataframe
             naive_occs = SA.naive_occs 
             post_occs = SA.posterior_occs
 
@@ -148,7 +148,7 @@ class TestStateArray(unittest.TestCase):
         # Works with empty trajectories
         trajectories = self.trajectories.subsample(0)
         with StateArray(trajectories, self.likelihood, self.params) as SA:
-            df = SA.posterior_occs_dataframe 
+            df = SA.occupations_dataframe 
 
             # Diffusion coefficients are correct
             D = np.array(df["diff_coef"]).reshape(SA.shape)
@@ -169,7 +169,7 @@ class TestStateArray(unittest.TestCase):
             diff_coefs = np.array([]),
         )
         with StateArray(self.trajectories, likelihood, self.params) as SA:
-            df = SA.posterior_occs_dataframe 
+            df = SA.occupations_dataframe 
             assert len(df) == 0
             assert all(map(lambda c: c in df.columns, [
                 "diff_coef", "loc_error", "naive_occupation", "mean_posterior_occupation"
@@ -186,43 +186,43 @@ class TestStateArray(unittest.TestCase):
         """ Test StateArray.plot_posterior """
         # Normal input 
         SA = StateArray(self.trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_posterior, out_png="_test_out_0.png")
+        self.check_plot_func(SA.plot_occupations, out_png="_test_out_0.png")
 
         # Empty input
         trajectories = self.trajectories.subsample(0)
         SA = StateArray(trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_posterior, out_png="_test_out_0.png")
+        self.check_plot_func(SA.plot_occupations, out_png="_test_out_0.png")
 
     def test_plot_posterior_assignments(self):
         """ Test StateArray.plot_posterior_assignments """
         # Normal input 
         SA = StateArray(self.trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_posterior_assignments, out_png="_test_out_0.png")
+        self.check_plot_func(SA.plot_assignment_probabilities, out_png="_test_out_0.png")
 
         # Empty input
         trajectories = self.trajectories.subsample(0)
         SA = StateArray(trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_posterior_assignments, out_png="_test_out_0.png")
+        self.check_plot_func(SA.plot_assignment_probabilities, out_png="_test_out_0.png")
        
     def test_plot_temporal_posterior_assignments(self):
         """ Test StateArray.plot_temporal_posterior_assignments """
         # Normal input 
         SA = StateArray(self.trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_temporal_posterior_assignments, out_png="_test_out_0.png")
+        self.check_plot_func(SA.plot_temporal_assignment_probabilities, out_png="_test_out_0.png")
 
         # Empty input
         trajectories = self.trajectories.subsample(0)
         SA = StateArray(trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_temporal_posterior_assignments, out_png="_test_out_0.png")       
+        self.check_plot_func(SA.plot_temporal_assignment_probabilities, out_png="_test_out_0.png")       
 
     def test_plot_spatial_posterior_assignments(self):
         """ Test StateArray.plot_spatial_posterior_assignments """ 
         # Normal input 
         SA = StateArray(self.trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_spatial_posterior_assignments, out_png="_test_out_0.png")
+        self.check_plot_func(SA.plot_spatial_assignment_probabilities, out_png="_test_out_0.png")
 
         # Empty input
         trajectories = self.trajectories.subsample(0)
         SA = StateArray(trajectories, self.likelihood, self.params)
-        self.check_plot_func(SA.plot_spatial_posterior_assignments, out_png="_test_out_0.png")       
+        self.check_plot_func(SA.plot_spatial_assignment_probabilities, out_png="_test_out_0.png")       
 

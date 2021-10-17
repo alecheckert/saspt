@@ -7,3 +7,4 @@ from .lik import make_likelihood, LIKELIHOODS
 from .parameters import StateArrayParameters
 from .sa import StateArray
 from .trajectory_group import TrajectoryGroup
+from .utils import normalize_2d

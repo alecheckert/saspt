@@ -140,6 +140,10 @@ class StateArray:
     def parameter_names(self) -> str:
         return self.likelihood.parameter_names
 
+    @property 
+    def parameter_values(self) -> Tuple[np.ndarray]:
+        return self.likelihood.parameter_values
+
     @property
     def n_states(self) -> int:
         """ Total number of states in the state array """
@@ -280,23 +284,23 @@ class StateArray:
         return self._posterior_occs
 
     @property
-    def posterior_occs_dataframe(self) -> pd.DataFrame:
+    def occupations_dataframe(self) -> pd.DataFrame:
         """ pandas.DataFrame representation of the posterior distribution,
         suitable for saving to a CSV.
 
         In this representation, each row of the DataFrame corresponds to a 
         distinct state in the state array. We give the marginal likelihood 
         and mean posterior occupation for each state. """
-        if not hasattr(self, "_posterior_occs_dataframe"):
+        if not hasattr(self, "_occupations_dataframe"):
             parameters = list(self.likelihood.parameter_names)
             cols = parameters + ["naive_occupation", "mean_posterior_occupation"]
             df = pd.DataFrame(index=np.arange(self.n_states), columns=cols, dtype=np.float64)
             df["naive_occupation"] = self.naive_occs.ravel()
             df["mean_posterior_occupation"] = self.posterior_occs.ravel()
             if self.n_states > 0:
-                df[parameters] = cartesian_product(*self.likelihood.parameter_grid)
-            self._posterior_occs_dataframe = df
-        return self._posterior_occs_dataframe
+                df[parameters] = cartesian_product(*self.likelihood.parameter_values)
+            self._occupations_dataframe = df
+        return self._occupations_dataframe
 
     @property 
     def diff_coefs(self) -> np.ndarray:
@@ -342,8 +346,8 @@ class StateArray:
         R = L.copy()
         par_indices = tuple(range(len(self.shape)))
         if self.params.progress_bar:
-            iterations = tqdm(range(self.params.max_iter))
             print("inferring posterior distribution...")
+            iterations = tqdm(range(self.params.max_iter))
         else:
             iterations = range(self.params.max_iter)
         for i in iterations:
@@ -382,7 +386,7 @@ class StateArray:
     ## PLOTTING ##
     ##############
 
-    def plot_posterior(self, out_png: str, **kwargs):
+    def plot_occupations(self, out_png: str, **kwargs):
         """ Make a plot of the posterior distribution suitable for the 
         underlying likelihood function of this StateArray.
 
@@ -406,7 +410,7 @@ class StateArray:
             warnings.warn(f"no posterior plot is implemented for " \
                 "likelihood {self.likelihood.name}; not making plot")
 
-    def plot_posterior_assignments(self, out_png: str, **kwargs):
+    def plot_assignment_probabilities(self, out_png: str, **kwargs):
         """ Make a plot of the posterior probabilities for each
         trajectory-state assignment. 
 
@@ -434,7 +438,7 @@ class StateArray:
                 **kwargs
             )
 
-    def plot_temporal_posterior_assignments(self, out_png: str,
+    def plot_temporal_assignment_probabilities(self, out_png: str,
         frame_block_size: int=None, **kwargs):
         """ Make a plot of the posterior probabilities for each 
         trajectory-state assignment as a function of the frame index.
@@ -476,7 +480,7 @@ class StateArray:
                 **kwargs
             )
 
-    def plot_spatial_posterior_assignments(self, out_png: str, **kwargs):
+    def plot_spatial_assignment_probabilities(self, out_png: str, **kwargs):
         """ Aggregate the prior and posterior trajectory-state assignment probabilities
         into spatial bins and show alongside the localization density.
 

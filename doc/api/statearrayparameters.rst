@@ -1,3 +1,5 @@
+.. _statearrayparameters_label:
+
 StateArrayParameters
 ====================
 

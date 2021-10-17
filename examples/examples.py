@@ -73,21 +73,21 @@ def exampleStateArray():
         )].sum()
 
         # Save the posterior state occupations to a CSV
-        SA.posterior_occs_dataframe.to_csv("posterior_occupations.csv", index=False)
+        SA.occupations_dataframe.to_csv("posterior_occupations.csv", index=False)
 
         ###############
         ## PLOT DEMO ##
         ###############
 
         # Plot state occupations
-        SA.plot_posterior("posterior_occupations.png")
+        SA.plot_occupations("posterior_occupations.png")
 
         # Plot the probabilities for each trajectory-state assignment
-        SA.plot_posterior_assignments("assignment_probabilities.png")
+        SA.plot_assignment_probabilities("assignment_probabilities.png")
 
         # Plot the probabilities for each trajectory-state
         # assignment as a function of frame index
-        SA.plot_temporal_posterior_assignments("assignment_probabilities_by_frame.png")
+        SA.plot_temporal_assignment_probabilities("assignment_probabilities_by_frame.png")
 
 
 def exampleStateArrayDataset():

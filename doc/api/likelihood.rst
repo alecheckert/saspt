@@ -53,7 +53,7 @@ Likelihood
 
         Names of each parameter in the parameter grid.
 
-    .. py:property:: parameter_grid
+    .. py:property:: parameter_values
         :abstractmethod:
         :type: Tuple[numpy.ndarray]
 

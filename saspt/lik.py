@@ -18,7 +18,7 @@ class Likelihood(ABC):
     In more detail, state arrays require likelihood functions that evaluate on a
     discrete grid of parameter values. The Likelihood object passes information
     about its parameter grid to the StateArray object via the *shape*, 
-    *parameter_names*, and *parameter_grid* attributes. """
+    *parameter_names*, and *parameter_values* attributes. """
     @property
     @abstractmethod
     def name(self) -> str:
@@ -38,7 +38,7 @@ class Likelihood(ABC):
 
     @property
     @abstractmethod
-    def parameter_grid(self) -> Tuple[np.ndarray]:
+    def parameter_values(self) -> Tuple[np.ndarray]:
         """ Values of the parameters on which this likelihood function is
         evaluated. Returns a tuple of 1D np.ndarray defining the values
         along each parameter axis """
@@ -134,7 +134,7 @@ class RBMELikelihood(Likelihood):
         return self._parameter_names
 
     @property 
-    def parameter_grid(self) -> Tuple[np.ndarray]:
+    def parameter_values(self) -> Tuple[np.ndarray]:
         return (self.diff_coefs, self.loc_errors)
 
     @property 
@@ -232,14 +232,14 @@ class RBMELikelihood(Likelihood):
         args
         ----
             occs        :   2D numpy.ndarray, state occupations with axes corresponding
-                            to self.parameter_grid
+                            to self.parameter_values
             normalize   :   bool, normalize over state occupations before returning
 
         returns
         -------
             2D numpy.ndarray of shape *occs*, the corrected state occupations
         """
-        return defoc_corr(occs, self.parameter_grid, likelihood=self.name, 
+        return defoc_corr(occs, self.parameter_values, likelihood=self.name, 
             frame_interval=self.frame_interval, dz=self.focal_depth, normalize=normalize)
 
     def marginalize_on_diff_coef(self, occs: np.ndarray) -> np.ndarray:
@@ -301,7 +301,7 @@ class GammaLikelihood(Likelihood):
         return self._parameter_names 
 
     @property
-    def parameter_grid(self) -> Tuple[np.ndarray]:
+    def parameter_values(self) -> Tuple[np.ndarray]:
         return (self.diff_coefs,)
 
     @property
@@ -361,7 +361,7 @@ class GammaLikelihood(Likelihood):
             return log_L.copy()
 
     def correct_for_defocalization(self, occs: np.ndarray, normalize: bool=False) -> np.ndarray:
-        return defoc_corr(occs, self.parameter_grid, likelihood=self.name,
+        return defoc_corr(occs, self.parameter_values, likelihood=self.name,
             frame_interval=self.frame_interval, dz=self.focal_depth, normalize=normalize)
 
     def marginalize_on_diff_coef(self, occs: np.ndarray) -> np.ndarray:
@@ -411,7 +411,7 @@ class RBMEMarginalLikelihood(Likelihood):
         return self._parameter_names 
 
     @property
-    def parameter_grid(self) -> Tuple[np.ndarray]:
+    def parameter_values(self) -> Tuple[np.ndarray]:
         return (self.diff_coefs,)
 
     @property
@@ -486,7 +486,7 @@ class RBMEMarginalLikelihood(Likelihood):
             return log_L.copy()
 
     def correct_for_defocalization(self, occs: np.ndarray, normalize: bool=False) -> np.ndarray:
-        return defoc_corr(occs, self.parameter_grid, likelihood=self.name,
+        return defoc_corr(occs, self.parameter_values, likelihood=self.name,
             frame_interval=self.frame_interval, dz=self.focal_depth, normalize=normalize)
 
     def marginalize_on_diff_coef(self, occs: np.ndarray) -> np.ndarray:
@@ -538,7 +538,7 @@ class FBMELikelihood(Likelihood):
         return self._parameter_names
 
     @property 
-    def parameter_grid(self) -> Tuple[np.ndarray]:
+    def parameter_values(self) -> Tuple[np.ndarray]:
         return (self.diff_coefs, self.hurst_pars)
 
     @property 
@@ -618,7 +618,7 @@ class FBMELikelihood(Likelihood):
             return log_L.copy()
 
     def correct_for_defocalization(self, occs: np.ndarray, normalize: bool=False) -> np.ndarray:
-        return defoc_corr(occs, self.parameter_grid, likelihood=self.name,
+        return defoc_corr(occs, self.parameter_values, likelihood=self.name,
             frame_interval=self.frame_interval, dz=self.focal_depth, normalize=normalize)
 
     def marginalize_on_diff_coef(self, occs: np.ndarray) -> np.ndarray:

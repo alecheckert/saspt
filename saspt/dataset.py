@@ -284,7 +284,7 @@ class StateArrayDataset:
             # Likelihood supports diffusion coefficient
             else:
                 i = self.likelihood.parameter_names.index("diff_coef")
-                diff_coefs = self.likelihood.parameter_grid[i]
+                diff_coefs = self.likelihood.parameter_values[i]
                 M = self.n_diff_coefs * self.n_files
                 index = np.arange(M)
                 df = pd.DataFrame(index=index, columns=cols, dtype=np.float64)

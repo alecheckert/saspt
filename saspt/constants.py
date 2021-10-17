@@ -5,7 +5,7 @@ import numpy as np
 ## DEFAULT PARAMETER GRIDS ##
 #############################
 
-DEFAULT_DIFF_COEFS = np.logspace(-2.0, 2.0, 101)
+DEFAULT_DIFF_COEFS = np.logspace(-2.0, 2.0, 100)
 DEFAULT_LOC_ERRORS = np.arange(0.0, 0.072, 0.002)
 DEFAULT_HURST_PARS = np.arange(0.05, 1.0, 0.05)
 

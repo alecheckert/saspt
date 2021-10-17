@@ -139,6 +139,12 @@ StateArray
         Names of the parameters corresponding to each axis in the parameter grid.
         Alias for `StateArray.likelihood.parameter_names`
 
+    .. py:property:: parameter_values
+        :type: Tuple[numpy.ndarray]
+
+        Values of the parameters corresponding to each axis in the parameter grid.
+        Alias for `StateArray.likelihood.parameter_values`.
+
     .. py:property:: n_states
         :type: int
 
@@ -372,7 +378,7 @@ StateArray
 
         Alias for Likelihood.marginalize_on_diff_coef.
 
-    .. py:method:: plot_posterior(self, out_png: str, **kwargs)
+    .. py:method:: plot_occupations(self, out_png: str, **kwargs)
 
         Plot the naive and posterior occupations. The exact plot will depend on
         :py:obj:`likelihood_type`. For the RBME likelihood, three panels are shown:
@@ -388,7 +394,7 @@ StateArray
 
         :param kwargs: additional kwargs to the plotting function
 
-    .. py:method:: plot_posterior_assignments(self, out_png: str, **kwargs)
+    .. py:method:: plot_assignment_probabilities(self, out_png: str, **kwargs)
 
         Plot the naive posterior trajectory-state assignments, marginalized on
         diffusion coefficient. Useful for judging heterogeneity between trajectories.
@@ -400,7 +406,7 @@ StateArray
 
         :param kwargs: additional kwargs to the plotting function
 
-    .. py:method:: plot_temporal_posterior_assignments(self, out_png: str, frame_block_size: int=None, **kwargs)
+    .. py:method:: plot_temporal_assignment_probabilities(self, out_png: str, frame_block_size: int=None, **kwargs)
 
         Plot the posterior diffusion coefficient as a function of frame. Useful
         to judge whether the posterior distribution is stationary. This may not
@@ -417,7 +423,7 @@ StateArray
         :param int frame_block_size: number of frames per temporal bin. If ``None``, attempts to find an appropriate block size for the SPT movie.
         :param kwargs: additional kwargs to the plotting function
 
-    .. py:method:: plot_spatial_posterior_assignments(self, out_png: str, **kwargs)
+    .. py:method:: plot_spatial_assignment_probabilities(self, out_png: str, **kwargs)
 
         Plot the mean posterior diffusion coefficient as a function of space.
         Currently experimental and subject to change.

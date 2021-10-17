@@ -228,7 +228,7 @@ def rbme_posterior_plot(
     # Show the posterior mean marginalized on localization error
     ax[2].plot(diff_coefs, posterior_occs_marg, color='k')
     ax[2].set_xscale("log")
-    ax[2].set_ylabel("Marginal\nposterior\noccupation", fontsize=fontsize)
+    ax[2].set_ylabel("Marginal posterior\noccupation", fontsize=fontsize)
     ax[2].set_xlim((0.01, 100.0))
     if truncate_y_axis:
         ax[2].set_ylim((0, posterior_occs_marg[diff_coefs>0.05].max()*2.0))
