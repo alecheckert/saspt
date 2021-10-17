@@ -8,8 +8,13 @@ Quickstart
 
     Before running, see :ref:`install_label` for installation instructions.
 
+.. note::
+
+    Want more code and less prose? Check out the `examples.py <https://github.com/alecheckert/saspt/blob/main/examples/examples.py>`_, a simple executable that demos most of stuff in this Quickstart.
+
 This is a quick guide to getting started with ``saspt``. It assumes you're familiar
-with single particle tracking (SPT) and have seen mixture models before.
+with single particle tracking (SPT), have seen mixture models before, and have 
+installed ``saspt``.
 For a more detailed explanation of ``saspt``'s purpose, model, and range of applicability,
 see :ref:`description_label`
 

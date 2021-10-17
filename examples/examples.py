@@ -105,19 +105,16 @@ def exampleStateArrayDataset():
             of interest
     """
 
-    # In this example, we recorded the files to be analyzed in a CSV. This
-    # CSV contains two columns:
-    # 
+    # In this experiment, we're comparing two HaloTag constructs: HaloTag-NLS
+    # and RARA-HaloTag. The file 'experiment_conditions.csv' contains two
+    # columns:
+    #
     #   'filepath':  path to the file containing trajectories from the SPT
     #                experiment
     #
-    #   'condition': the experimental condition that each file belongs to.
-    # 
-    # In this experiment, we're comparing two HaloTag constructs: HaloTag-NLS
-    # and RARA-HaloTag. So we just have two experimentl conditions.
+    #   'condition': the experimental condition that each file belongs to;
+    #                either 'ht-nls' or 'rara-ht'
     experiment_conditions = pd.read_csv('experiment_conditions.csv')
-
-    # Settings for the state array. Note that 
 
     settings = dict(
         # Type of likelihood function to use
