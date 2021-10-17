@@ -1,6 +1,6 @@
 # saspt
 
-![](doc/_static/logo.png?raw=True)
+![](doc/_static/logo.png | width=100)
 
 State arrays for single particle tracking
 
