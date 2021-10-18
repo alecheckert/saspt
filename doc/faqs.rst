@@ -4,8 +4,26 @@
 FAQS
 ====
 
-Q. Why doesn't ``saspt`` support input format :math:`X`?
-========================================================
+Q. Does ``saspt`` provide a way to do tracking?
+===============================================
+
+``saspt`` only analyzes the *output* of a tracking algorithm; it doesn't
+produce the trajectories themselves. The general workflow is:
+
+    1. Acquire some raw SPT movies
+    2. Use a tracking algorithm to produce trajectories from the SPT movie
+    3. Feed the trajectories into ``saspt`` (or whatever your favorite analysis tool is)
+
+There are lots of good tracking algorithms out there.
+In the sample data included in the ``saspt`` repo, we used an in-house tracking
+tool with a graphic user interface (`quot <https://github.com/alecheckert/quot>`_). But - you know - we're biased.
+
+Other popular options are `TrackMate <https://imagej.net/plugins/trackmate/>`_,
+the `multiple-target tracing algorithm <https://pubmed.ncbi.nlm.nih.gov/18604216/>`_,
+or `Sbalzerini's hill climbing algorithm <https://pubmed.ncbi.nlm.nih.gov/16043363/>`_. There are new tracking algorithms every day; use Google to see for yourself.
+
+Q. Why doesn't ``saspt`` support input format *X*?
+==================================================
 
 Because a table of detections is probably the simplest format that
 exists to describe trajectories, so we added it first. We're happy to 
