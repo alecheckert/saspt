@@ -9,8 +9,7 @@ are just Bayesian mixture models with large number of mixture components ("state
 on a fixed grid of parameters. They rely on a variational Bayesian inference routine that prunes away 
 superfluous states, selecting minimal models to describe observed SPT datasets.
 What makes them work is similar to what makes nonparametric Bayesian 
-methods work (namely, automatic relevance determination). But their structure leads to more
-a much more efficient and scalable inference routine.
+methods work (namely, automatic relevance determination). But their structure leads to a much more efficient and scalable inference routine.
 
 .. figure:: _static/graphical_models.png
 
@@ -61,19 +60,15 @@ While this works well enough for one pure Brownian trajectory, this
 approach has several shortcomings when we try to generalize it:
 
 	1. Closed-form maximum likelihood solutions only exist for the simplest physical models, like RBM. Even introducing measurement error, a ubiquitous feature of SPT-PALM experiments, is sufficient to eliminate any closed-form solution.
-	2. The maximum likelihood estimate does not provide any intrinsic measure of confidence in the result. This becomes especially problematic for more complex models with multiple parameters, where a large range of parameter vectors may give near-equivalent results. In practice, this means that even when our maximum likelihood estimators work perfectly, they are highly instable from one experiment to the next.
+	2. Maximum likelihood does not provide any measure of confidence in the result. This becomes problematic for complex models with multiple parameters, where a large range of parameter vectors may give near-equivalent results. This means that even when our maximum likelihood estimators work perfectly, they are highly instable from one experiment to the next.
 
 An alternative to maximum likelihood inference is to treat both 
 :math:`\mathbf{X}` and :math:`\boldsymbol{\theta}` as random 
-variables, and evaluate the probability 
+variables and evaluate the conditional probability 
 :math:`p(\boldsymbol{\theta} | \mathbf{X})`. For instance, we can estimate
 :math:`\boldsymbol{\theta}` by taking the mean of 
 :math:`p(\boldsymbol{\theta} | \mathbf{X})`. This is the Bayesian 
 approach (and the one we use in ``saspt``).
-
-The important part is that the likelihood function assigns a number 
-to each trajectory based on (a) the observed path of the trajectory 
-:math:`X` and (b) one or more *model parameters* :math:`\boldsymbol{\theta}`.
 
 Mixture models
 ==============
