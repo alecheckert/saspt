@@ -305,14 +305,13 @@ alternately evaluating the two equations
 
 	\log q(\boldsymbol{\tau}) = \mathbb{E}_{\mathbf{Z} \sim q(\mathbf{Z})} \left[ \log p (\mathbf{X}, \mathbf{Z}, \boldsymbol{\tau}) \right] + \text{constant}
 
-The constants are chosen so that the respective factors :math:`q(\mathbf{Z})` or :math:`q(\boldsymbol{\tau})` are normalized. These expectations are
-just shorthand for 
+The constants are chosen so that the respective factors :math:`q(\mathbf{Z})` or :math:`q(\boldsymbol{\tau})` are normalized. These expectations are just shorthand for 
 
 .. math::
 	
 	\mathbb{E}_{\boldsymbol{\tau} \sim q(\boldsymbol{\tau})} \left[ \log p (\mathbf{X}, \mathbf{Z}, \boldsymbol{\tau}) \right] = \int \log p (\mathbf{X}, \mathbf{Z}, \boldsymbol{\tau}) q(\boldsymbol{\tau}) \: d \boldsymbol{\tau}
 
-	\mathbb{E}_{\mathbf{Z} \sim q(\mathbf{Z})} \left[ \log p (\mathbf{X}, \mathbf{Z}, \boldsymbol{\tau}) \right] = \sum\limits_{\mathbf{Z}} \log p (\mathbf{X}, \mathbf{Z}, \boldsymbol{\tau}) q(\boldsymbol{\tau}) p(\mathbf{Z})
+	\mathbb{E}_{\mathbf{Z} \sim q(\mathbf{Z})} \left[ \log p (\mathbf{X}, \mathbf{Z}, \boldsymbol{\tau}) \right] = \sum\limits_{\mathbf{Z}} \log p (\mathbf{X}, \mathbf{Z}, \boldsymbol{\tau}) q(\mathbf{Z})
 
 Evaluating the first of these factors (and ignoring terms that don't directly depend on :math:`\boldsymbol{\tau}`), we have
 

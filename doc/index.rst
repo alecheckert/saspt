@@ -6,6 +6,10 @@
 Welcome to saSPT's documentation!
 =================================
 
+.. note:
+
+    You're here early! The ``saspt`` documentation is under construction. We aim to finish it by the end of October, 2021.
+
 ``saspt`` is a Python tool for analyzing single particle tracking (SPT) experiments. It uses 
 *state arrays*, a kind of variational Bayesian framework that learns intelligible models 
 given raw trajectories from an SPT experiment.
@@ -28,8 +32,6 @@ If you want to jump right into working with ``saspt``, see :ref:`quickstart_labe
 more detailed explanation of what ``saspt`` is and why it exists, see :ref:`description_label` 
 (**currently under construction**). If you're feeling adventurous and want to see the guts of the 
 actual model/inference algorithm, see :ref:`label_model`.
-
-**You're here early! Currently, the ``saspt`` documentation is under construction. We aim to finish it by the end of October, 2021.**
 
 (``saspt`` stands for "state arrays for single particle tracking".)
 
