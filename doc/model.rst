@@ -4,7 +4,19 @@
 The state array model
 =====================
 
-This section describes the underlying statistical model for state arrays.
+This section describes the underlying state array model used by ``saspt``. State arrays
+are just Bayesian mixture models with large number of mixture components ("states") that are situated
+on a fixed grid of parameters. They rely on a variational Bayesian inference routine that prunes away 
+superfluous states, selecting minimal models to describe observed SPT datasets.
+What makes them work is similar to what makes nonparametric Bayesian 
+methods work (namely, automatic relevance determination). But their structure leads to more
+a much more efficient and scalable inference routine.
+
+.. figure:: _static/graphical_models.png
+
+    Graphical model comparison of finite state mixtures, Dirichlet process mixtures,
+    and state arrays. Open circles indicate unobserved variables, closed circles/dots indicate
+    observed variables.
 
 Likelihood functions
 ====================
