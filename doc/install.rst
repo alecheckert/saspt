@@ -13,7 +13,7 @@ Option 1: install with pip
 
 .. code-block:: bash
 
-    python3 -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ saspt-test==0.1.7
+    python3 -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ saspt-test
 
 Option 2: install from source
 =============================
