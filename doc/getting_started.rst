@@ -74,7 +74,7 @@ This means that this state array infers occupations on a 2D parameter grid of di
 parameter grid is ``(100, 36)``, meaning that the grid uses 100 distinct diffusion coefficients
 and 36 distinct localization errors (the default). These define the range of physical models that can be 
 described with this state array. We can get the values of these parameters using the 
-``StateArray.parameter_grid`` attribute:
+``StateArray.parameter_values`` attribute:
 
 .. code-block:: python
 
