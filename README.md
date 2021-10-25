@@ -9,3 +9,4 @@ dynamics.
 
 See the [Documentation](https://saspt.readthedocs.io/en/latest/) for more info. 
 
+To install: `pip install saspt`
