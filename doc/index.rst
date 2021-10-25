@@ -22,22 +22,37 @@ write ``saspt`` because:
     * it imposes no prior beliefs on the number of dynamic states;
     * it uses tried-and-true Bayesian methods (marginalization over nuisance parameters) to deal with measurement error in a natural way.
 
-I've found ``saspt`` particularly useful when applied to fluorescent protein tracking in live cells.
-In the complex intracellular environment, a protein may occupy a large and unknown number of molecular
+I originally wrote ``saspt`` to deal with live cell protein tracking experiments.
+In the complex intracellular environment, a protein can occupy a large and unknown number of molecular
 states with distinct dynamics. ``saspt`` provides a simple way to measure the number,
 characteristics, and fractional occupations of these states. It is also "smart" enough to deal with 
 situations where there may *not* be discrete states.
 
 If you want to jump right into working with ``saspt``, see :ref:`quickstart_label`. If you want a 
-more detailed explanation of what ``saspt`` is and why it exists, see :ref:`description_label` 
-(**currently under construction**). If you're feeling adventurous and want to see the guts of the 
-actual model/inference algorithm, see :ref:`label_model`.
+more detailed explanation of why ``saspt`` exists, see :ref:`description_label`.
+If you want to dig into the guts of the actual model and inference algorithm, see :ref:`label_model`.
 
 (``saspt`` stands for "state arrays for single particle tracking".)
 
+What does saSPT do?
+===================
+
+``saspt`` takes a set of trajectories from a tracking experiment, and identifies a mixture model to explain
+them. It is designed to work natively with ``numpy`` and ``pandas`` objects.
+
+What doesn't saSPT do?
+======================
+
+    1. ``saspt`` doesn't do tracking; it takes trajectories as input. (See: :ref:`faq_tracking_label`)
+    2. ``saspt`` doesn't model *transitions between states*. For that purpose, we recommend the excellent `vbSPT package <https://doi.org/10.1038/nmeth.2367>`_.
+    3. ``saspt`` doesn't check the quality of the input data.
+    4. ``saspt`` expects you to know the parameters for your imaging experiment, including pixel size, frame rate, and focal depth.
+
+Currently ``saspt`` only supports a small range of physical models. That may change as the package grows.
+
 .. toctree::
     :maxdepth: 3
-    :caption: Contents:
+    :caption: Contents
     :glob:
 
     install

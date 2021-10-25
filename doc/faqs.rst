@@ -4,6 +4,8 @@
 FAQS
 ====
 
+.. _faq_tracking_label:
+
 Q. Does ``saspt`` provide a way to do tracking?
 ===============================================
 
@@ -107,3 +109,40 @@ the fraction of particles with diffusion coefficients between 1 and 10
 
 That being said, ``saspt`` does *not* provide any way to determine the 
 endpoints for this range, and that is up to you or the methods you develop.
+
+.. _defocalization_label:
+
+Q. What is defocalization?
+==========================
+
+Examining the movie in the section :ref:`description_label`, you may notice that the particles are constantly
+wandering into and out of focus. The faster they move, the faster they escape the microscope's
+focus.
+
+As it turns out, this behavior (termed "defocalization") has a dangerous side effect. If we 
+want to know the *state occupations* - the fraction of proteins in a particular state - 
+we may be tempted to report the *fraction of observed trajectories in that state*.
+The problem is that particles in fast
+states contribute many short trajectories, because they can wander in and out of focus
+multiple times before bleaching. By contrast, particles in slow states produce a
+few long trajectories; they don't move fast enough to reenter the focal volume before bleaching.
+
+As a result, a mixture of equal parts fast and slow particles does *not* produce
+equal parts fast and slow trajectories.
+
+.. figure:: _static/defocalization_2.png
+    :width: 350
+
+    Illustration of the defocalization problem. Particles inside the focus (green circles) are recorded by the microscope; particles outside the focus (red circles) are not recorded. Particles that traverse the focus multiple times are "fragmented" into multiple short trajectories.
+
+Defocalization is the reason why the "MSD histogram" method - one of the most popular
+approaches to analyze protein tracking data - yields inaccurate results when applied to 
+2D imaging. A more detailed discussion can be found in the papers
+of `Mazza <https://doi.org/10.1093/nar/gks701>`_ and 
+`Hansen and Woringer <https://doi.org/10.7554/eLife.33125.001>`_.
+
+``saspt`` avoids the state estimation problem by computing state occupations in terms of *jumps*
+rather than trajectories. Additionally, an analytical correction factor (analogous to the empirical
+correction factor from `Hansen and Woringer <https://doi.org/10.7554/eLife.33125.001>`_) can be 
+applied to the data by passing the ``focal_depth`` parameter when constructing a ``StateArray``
+or ``StateArrayDataset`` object.

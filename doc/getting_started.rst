@@ -16,7 +16,7 @@ This is a quick guide to getting started with ``saspt``. It assumes you're famil
 with single particle tracking (SPT), have seen mixture models before, and have 
 installed ``saspt``.
 For a more detailed explanation of ``saspt``'s purpose, model, and range of applicability,
-see :ref:`description_label`
+see :ref:`description_label`.
 
 Run state arrays on a single SPT experiment
 ===========================================
@@ -28,6 +28,8 @@ We'll use the sample set of trajectories that comes with ``saspt``:
     >>> import pandas as pd, numpy as np, matplotlib.pyplot as plt
     >>> from saspt import sample_detections, StateArray, RBME
     >>> detections = sample_detections()
+
+(The expected format for input trajectories is described under :ref:`input_format_label`.)
 
 Next, we'll set the parameters for a state array that uses mixtures of regular Brownian
 motions with localization error (RBMEs):

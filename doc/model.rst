@@ -220,7 +220,7 @@ approximative (variational Bayes with a factorable candidate posterior).
 However, a fundamental problem is the choice of :math:`K`, the number of 
 states. Nearly everything depends on it. 
 
-As discussed in :ref:`description_label`, nonparametric Bayesian methods
+Nonparametric Bayesian methods
 developed in the 1970s through 1990s proceeded on the realization that, as
 :math:`K \rightarrow \infty`, the number of states with nonzero occupation
 in the posterior distribution approached a finite number. In effect, the 
@@ -228,7 +228,7 @@ these models "pruned" away superfluous features, leaving only the minimal
 models required to explain observed data. (In the context of machine 
 learning, this property of Bayesian inference is called *automatic relevance determination* (ARD).)
 
-In math, these models replaced the separate priors 
+These models replaced the separate priors 
 :math:`p(\boldsymbol{\tau})` and :math:`p(\boldsymbol{\theta})` with
 a single prior :math:`H(\boldsymbol{\theta})` defined on the
 space of all possible parameters :math:`\boldsymbol{\Theta}`. The models
@@ -237,7 +237,7 @@ priors are a kind of probability distribution called Dirichlet processes
 (essentially the infinite-dimensional version of a regular Dirichlet 
 distribution).
 
-However, such models are unwieldy in practice. As MCMC methods, they are extremely computationally costly. This is particularly true for high-dimensional parameter vectors :math:`\boldsymbol{\theta}`, for which inference on any kind of practical timescale is basically impossible. 
+In practice, however, such models are unwieldy. As MCMC methods, they are extremely computationally costly. This is particularly true for high-dimensional parameter vectors :math:`\boldsymbol{\theta}`, for which inference on any kind of practical timescale is basically impossible. 
 So while they solve the problem of choosing :math:`K`, they introduce the
 equally dire problem of impractical runtimes.
 

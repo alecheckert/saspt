@@ -15,6 +15,7 @@ API
 .. toctree:: 
     :maxdepth: 2
     
+    input_format
     trajectorygroup
     likelihood
     statearrayparameters
