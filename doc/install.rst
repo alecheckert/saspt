@@ -9,11 +9,9 @@ Install
 Option 1: install with pip
 ==========================
 
-``saspt`` is in active development. The test version is currently hosted on `TestPyPI <https://test.pypi.org/project/saspt-test/0.1.7/>`_ and can be installed with ``pip``:
-
 .. code-block:: bash
 
-    python3 -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ saspt-test
+    pip install saspt
 
 Option 2: install from source
 =============================
