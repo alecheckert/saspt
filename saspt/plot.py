@@ -857,7 +857,7 @@ def lineplot_by_condition(
         for s in ['top', 'left', 'right']:
             axes[i].spines[s].set_visible(False)
         if i // nx == ny - 1:
-            ax.set_xlabel("Diff. coef. ($\mu$m$^{2}$ s$^{-1}$)", fontsize=fontsize)
+            axes[i].set_xlabel("Diff. coef. ($\mu$m$^{2}$ s$^{-1}$)", fontsize=fontsize)
 
     # Save
     plt.tight_layout()
