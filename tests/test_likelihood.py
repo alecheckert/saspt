@@ -91,7 +91,7 @@ class TestLikelihoods(unittest.TestCase):
             RBME: dict(diff_coefs=diff_coefs, loc_errors=loc_errors),
             GAMMA: dict(diff_coefs=diff_coefs),
             RBME_MARGINAL: dict(diff_coefs=diff_coefs, loc_errors=loc_errors),
-            FBME: dict(diff_coefs=diff_coefs, hurst_pars=hurst_pars),
+            FBME: dict(diff_coefs=diff_coefs, hurst_pars=hurst_pars, loc_errors=loc_errors),
         }
 
         for likelihood_type in LIKELIHOODS.keys():
