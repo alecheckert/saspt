@@ -361,7 +361,7 @@ class GammaLikelihood(Likelihood):
             return log_L.copy()
 
     def correct_for_defocalization(self, occs: np.ndarray, normalize: bool=False) -> np.ndarray:
-        return defoc_corr(occs, self.parameter_values, likelihood=self.name,
+        return defoc_corr(L=occs, support=self.parameter_values, likelihood=self.name,
             frame_interval=self.frame_interval, dz=self.focal_depth, normalize=normalize)
 
     def marginalize_on_diff_coef(self, occs: np.ndarray) -> np.ndarray:
@@ -509,17 +509,22 @@ class RBMEMarginalLikelihood(Likelihood):
 
 
 class FBMELikelihood(Likelihood):
-    def __init__(self, pixel_size_um: float, frame_interval: float, 
-        focal_depth: float, diff_coefs: np.ndarray=DEFAULT_DIFF_COEFS,
-        hurst_pars: np.ndarray=DEFAULT_HURST_PARS, loc_error: float=0.035, 
-        **kwargs):
-
+    def __init__(
+        self,
+        pixel_size_um: float,
+        frame_interval: float, 
+        focal_depth: float,
+        diff_coefs: np.ndarray=DEFAULT_DIFF_COEFS,
+        hurst_pars: np.ndarray=DEFAULT_HURST_PARS,
+        loc_errors: np.ndarray=DEFAULT_LOC_ERRORS,
+        **kwargs
+    ):
         self.pixel_size_um = pixel_size_um 
         self.frame_interval = frame_interval
         self.focal_depth = focal_depth 
         self.diff_coefs = np.asarray(diff_coefs)
         self.hurst_pars = np.asarray(hurst_pars)
-        self.loc_error = loc_error
+        self.loc_errors = np.asarray(loc_errors)
 
     @property
     def name(self) -> str:
@@ -528,34 +533,34 @@ class FBMELikelihood(Likelihood):
     @property 
     def shape(self) -> Tuple[int]:
         if not hasattr(self, "_shape"):
-            self._shape = (self.diff_coefs.shape[0], self.hurst_pars.shape[0])
+            self._shape = (self.diff_coefs.shape[0], self.hurst_pars.shape[0], self.loc_errors.shape[0])
         return self._shape 
 
     @property
     def parameter_names(self) -> Tuple[str]:
         if not hasattr(self, "_parameter_names"):
-            self._parameter_names = ("diff_coef", "hurst_parameter")
+            self._parameter_names = ("diff_coef", "hurst_parameter", "loc_error")
         return self._parameter_names
 
     @property 
     def parameter_values(self) -> Tuple[np.ndarray]:
-        return (self.diff_coefs, self.hurst_pars)
+        return self.diff_coefs, self.hurst_pars, self.loc_errors
 
     @property 
     def parameter_units(self) -> Tuple[str]:
         if not hasattr(self, "_parameter_units"):
-            self._parameter_units = ("µm2/sec", "")
+            self._parameter_units = ("µm2/sec", "", "µm")
         return self._parameter_units
 
     def __call__(self, trajectories: TrajectoryGroup) -> Tuple[np.ndarray]:
-        J = trajectories.jumps 
+        J = trajectories.jumps
         n_tracks = trajectories.n_tracks
-        le2 = self.loc_error ** 2
 
         # Generate the FBME jump covariance matrix
-        def make_cov(diff_coef, hurst_par, n) -> np.ndarray:
+        def make_cov(diff_coef, hurst_par, le, n) -> np.ndarray:
+            le2 = le ** 2
             h2 = hurst_par * 2
-            T, S = (np.indices((n, n)) + 1)
+            T, S = np.indices((n, n)) + 1
             C = diff_coef * self.frame_interval * (
                 np.power(np.abs(T - S + 1), h2) + 
                 np.power(np.abs(T - S - 1), h2) - 
@@ -573,7 +578,6 @@ class FBMELikelihood(Likelihood):
 
         # Iterate through the different trajectory lengths
         for n in range(1, trajectories.splitsize+1):
-
             # Get all track vectors matching this length. *V* is a 3D numpy.ndarray
             # with shape (M, 2, n), where *M* is the number of trajectories with 
             # exactly *n* jumps
@@ -584,12 +588,13 @@ class FBMELikelihood(Likelihood):
 
             for i, D in enumerate(self.diff_coefs):
                 for j, hp in enumerate(self.hurst_pars):
-                    C = make_cov(D, hp, n)
-                    C_inv = np.linalg.inv(C)
-                    log_norm = n * np.log(2*np.pi) + np.linalg.slogdet(C)[1]
-                    y_ll = ((y_jumps @ C_inv) * y_jumps).sum(axis=1)
-                    x_ll = ((x_jumps @ C_inv) * x_jumps).sum(axis=1)
-                    log_L[i,j,track_idx] = -0.5 * (y_ll + x_ll) - log_norm
+                    for k, le in enumerate(self.loc_errors):
+                        C = make_cov(D, hp, le, n)
+                        C_inv = np.linalg.inv(C)
+                        log_norm = n * np.log(2*np.pi) + np.linalg.slogdet(C)[1]
+                        y_ll = ((y_jumps @ C_inv) * y_jumps).sum(axis=1)
+                        x_ll = ((x_jumps @ C_inv) * x_jumps).sum(axis=1)
+                        log_L[i,j,k,track_idx] = -0.5 * (y_ll + x_ll) - log_norm
 
         return log_L, jumps_per_track
 
@@ -599,27 +604,30 @@ class FBMELikelihood(Likelihood):
 
         args
         ----
-            log_L   :   3D numpy.ndarray of shape (*self.shape, n_tracks),
+            log_L   :   4D numpy.ndarray of shape (*self.shape, n_tracks),
                         log likelihoods of each trajectory at each point
                         on the parameter grid
 
         returns
         -------
-            3D numpy.ndarray of shape (*self.shape, n_tracks),
+            4D numpy.ndarray of shape (*self.shape, n_tracks),
                 likelihoods of each track at each point on the
                 parameter grid
         """
         if log_L.size > 0:
             log_L[np.isnan(log_L)] = -np.inf
             log_L[log_L>=100.0] = 100.0
-            L = np.exp(log_L - np.nanmax(log_L, axis=(0, 1)))
-            return L / L.sum(axis=(0,1))
+            L = np.exp(log_L - np.nanmax(log_L, axis=(0,1,2)))
+            return L / L.sum(axis=(0,1,2))
         else:
             return log_L.copy()
 
     def correct_for_defocalization(self, occs: np.ndarray, normalize: bool=False) -> np.ndarray:
-        return defoc_corr(occs, self.parameter_values, likelihood=self.name,
-            frame_interval=self.frame_interval, dz=self.focal_depth, normalize=normalize)
+        if np.isinf(self.focal_depth):
+            return occs
+        else:
+            return defoc_corr(occs, self.parameter_values, likelihood=self.name,
+                frame_interval=self.frame_interval, dz=self.focal_depth, normalize=normalize)
 
     def marginalize_on_diff_coef(self, occs: np.ndarray) -> np.ndarray:
         """ Marginalize a set of state occupations or trajectory-state 
@@ -637,13 +645,13 @@ class FBMELikelihood(Likelihood):
                 assignments with parameters other than diffusion coefficient
                 marginalized out
         """
-        if len(occs.shape) == 2:
-            out = occs.sum(axis=1)
+        if len(occs.shape) == 3:
+            out = occs.sum(axis=(1,2))
             S = out.sum()
             return out / S if S > 0 else out 
-        elif len(occs.shape) == 3:
-            # Marginalize out Hurst parameter
-            out = occs.sum(axis=1)
+        elif len(occs.shape) == 4:
+            # Marginalize out Hurst parameter and localization error magnitude
+            out = occs.sum(axis=(1,2))
             # Normalization constant for each trajectory
             S = out.sum(axis=0)
             nonzero = S > 0

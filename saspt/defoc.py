@@ -322,7 +322,7 @@ def defoc_corr_rbme(L, diff_coefs, loc_errors, frame_interval=0.00748, dz=0.7,
     return L 
 
 
-def defoc_corr_fbm(L, diff_coefs, hurst_pars, frame_interval=0.00748, dz=0.7,
+def defoc_corr_fbm(L, diff_coefs, hurst_pars, loc_errors, frame_interval=0.00748, dz=0.7,
     normalize=False):
     """
     Apply a defocalization correction to the fractional Brownian motion 
@@ -341,6 +341,10 @@ def defoc_corr_fbm(L, diff_coefs, hurst_pars, frame_interval=0.00748, dz=0.7,
                             corresponding to *L*. The third axis of *L*
                             is assumed to correspond to the values of 
                             *hurst_pars*.
+        loc_errors      :   1D ndarray, the set of localization errors
+                            corresponding to *L*. The fourth axis of *L*
+                            is assumed to correspond to the values of
+                            *loc_errors*
         frame_interval  :   float, frame interval in seconds
         dz              :   float, focal depth in microns
     returns
@@ -349,19 +353,21 @@ def defoc_corr_fbm(L, diff_coefs, hurst_pars, frame_interval=0.00748, dz=0.7,
     """
     diff_coefs = np.asarray(diff_coefs)
     hurst_pars = np.asarray(hurst_pars)
+    loc_errors = np.asarray(loc_errors)
     nD = diff_coefs.shape[0]
     nH = hurst_pars.shape[0]
+    nLE = loc_errors.shape[0]
 
     # Evaluate the defocalization probability at one frame interval
     # for all parameter combinations considered in this likelihood matrix
-    frac_remain = np.ones((nD, nH), dtype=np.float64)
+    frac_remain = np.ones((nD, nH, nLE), dtype=np.float64)
     if not np.isinf(dz):
         for i, D in enumerate(diff_coefs):
             for j, H in enumerate(hurst_pars):
-                frac_remain[i,j] = f_remain_fbm(D, H, 1, frame_interval, dz)
+                frac_remain[i,j,:] = f_remain_fbm(D, H, 1, frame_interval, dz)
 
     # Aggregate likelihood
-    if len(L.shape) == 2:
+    if len(L.shape) == 3:
 
         # Apply the correction
         L /= frac_remain
@@ -373,9 +379,9 @@ def defoc_corr_fbm(L, diff_coefs, hurst_pars, frame_interval=0.00748, dz=0.7,
                 L /= norm
 
     # Trajectory-wise
-    elif len(L.shape) == 3:
+    elif len(L.shape) == 4:
         L = (L.T / frac_remain.T).T
-        if normalize: L = L / L.sum(axis=(0,1))
+        if normalize: L = L / L.sum(axis=(0,1,2))
 
     return L 
 
@@ -385,7 +391,7 @@ LIKELIHOOD_CORR_FUNCS = {
     GAMMA        : defoc_corr_rbm,
     RBME_MARGINAL: defoc_corr_rbm,
     RBME         : defoc_corr_rbme,
-    FBME         : defoc_corr_fbm
+    FBME         : defoc_corr_fbm,
 }
 
 
