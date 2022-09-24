@@ -3,7 +3,7 @@
 Note on input format
 ====================
 
-One of the simplest formats to store trajectories is a large table of coordinates.
+saspt expects input trajectories as a large table of spatiotemporal coordinates.
 Each coordinate represents the detection of a single fluorescent emitter, and is 
 associated with a *trajectory index* that has been assigned by a tracking algorithm.
 An example is shown in the figure below.
@@ -18,8 +18,7 @@ An example is shown in the figure below.
     the case of trajectory 3.
 
 The detection table (usually as a CSV) is the format expected by ``saspt``.
-It was chosen for its simplicity; the output of pretty much any tracking algorithm 
-can be converted to a detection CSV.
+This format was chosen for simplicity.
 
 ``saspt`` comes with an example of the kind of input it expects:
 
@@ -38,6 +37,8 @@ can be converted to a detection CSV.
     495  360.006572   70.511980    299       14458
 
     [496 rows x 4 columns]
+
+The XY coordinates in **pixels**.
 
 These can then be used to construct the objects that ``saspt`` expects (see
 the class hierarchy at :ref:`api_label`):

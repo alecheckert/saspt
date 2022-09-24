@@ -29,7 +29,8 @@ We'll use the sample set of trajectories that comes with ``saspt``:
     >>> from saspt import sample_detections, StateArray, RBME
     >>> detections = sample_detections()
 
-(The expected format for input trajectories is described under :ref:`input_format_label`.)
+The expected format for input trajectories is described under :ref:`input_format_label`.
+**Importantly, the units for the XY coordinates are in pixels, not microns.**
 
 Next, we'll set the parameters for a state array that uses mixtures of regular Brownian
 motions with localization error (RBMEs):
