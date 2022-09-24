@@ -12,7 +12,8 @@ def exampleStateArray():
     # Input files containing trajectories
     input_files = glob(os.path.join(SAMPLE_DIR, "u2os_ht_nls_7.48ms", "*.csv"))
 
-    # Load and concatenate detected particles across files
+    # Load and concatenate detected particles across files. The units of
+    # the XY columns are in *pixels*.
     detections = load_detections(*input_files)
 
     # Configuration for the state array, including microscope parameters

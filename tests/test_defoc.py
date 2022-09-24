@@ -20,19 +20,16 @@ class TestDefocCorr(unittest.TestCase):
             (self.diff_coefs,),
             (self.diff_coefs,),
             (self.diff_coefs, self.loc_errors),
-            (self.diff_coefs, self.hurst_pars),
+            (self.diff_coefs, self.hurst_pars, self.loc_errors),
         ]
         self.occ_sets = [
             np.random.random(size=(self.n_dc, 0)),
             np.random.random(size=(self.n_dc, 0)),
             np.random.random(size=(self.n_dc, self.n_le, 0)),
-            np.random.random(size=(self.n_dc, self.n_hp, 0)),
+            np.random.random(size=(self.n_dc, self.n_hp, self.n_le, 0)),
         ]
 
         np.random.seed(66666)
-
-    def tearDown(self):
-        pass
 
     def test_normalization(self):
         """ Make sure that *defoc_corr* normalizes its output if the *normalize*
@@ -59,11 +56,11 @@ class TestDefocCorr(unittest.TestCase):
         assert (defoc.defoc_corr(occs[:,:,0], support=support, likelihood=RBME, **self.kwargs).sum() - 1.0) <= 1.0e-6
 
         # FBME
-        support = (self.diff_coefs, self.hurst_pars)
-        occs = np.random.random(size=(self.n_dc, self.n_hp, self.n_tracks))
+        support = (self.diff_coefs, self.hurst_pars, self.loc_errors)
+        occs = np.random.random(size=(self.n_dc, self.n_hp, self.n_le, self.n_tracks))
         result = defoc.defoc_corr(occs, support=support, likelihood=FBME, **self.kwargs)
-        assert (np.abs(result.sum(axis=(0,1)) - 1.0) <= 1.0e-6).all()
-        assert (defoc.defoc_corr(occs[:,:,0], support=support, likelihood=FBME, **self.kwargs).sum() - 1.0) <= 1.0e-6
+        assert (np.abs(result.sum(axis=(0,1,2)) - 1.0) <= 1.0e-6).all()
+        assert (defoc.defoc_corr(occs[:,:,:,0], support=support, likelihood=FBME, **self.kwargs).sum() - 1.0) <= 1.0e-6
 
     def test_inf_focal_depth(self):
         """ All defocalization function should return the input unmodified if passed 

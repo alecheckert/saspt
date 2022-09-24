@@ -615,20 +615,25 @@ def spatial_assignment_probability_plot(
     # Get localization density
     loc_density = H / bin_area 
 
-    vmin = 0
-    vmax = np.mean([np.nanpercentile(post_mean, 99), np.nanpercentile(prior_mean, 99)])
+    # Colorbar scaling
+    loc_density_vmin = 0
+    loc_density_vmax = np.nanpercentile(loc_density, 99)
+    prior_vmin = 0
+    prior_vmax = np.nanpercentile(prior_mean, 99)
+    post_vmin = 0
+    post_vmax = np.nanpercentile(post_mean, 99)
 
     # Main plot
     fig, ax = plt.subplots(1, 3, figsize=(3*3, 1*3), sharex=True, sharey=True)
-    f0 = ax[0].imshow(loc_density, cmap='gray', origin='lower', vmin=vmin, vmax=vmax)
+    f0 = ax[0].imshow(loc_density, cmap='gray', origin='lower', vmin=loc_density_vmin, vmax=loc_density_vmax)
     cbar = plt.colorbar(f0, ax=ax[0], fraction=0.046, pad=0.04)
     cbar.set_label("Detections / $\mu$m$^{2}$", fontsize=fontsize)
 
-    f1 = ax[1].imshow(prior_mean, cmap='viridis', origin='lower', vmin=vmin, vmax=vmax)
+    f1 = ax[1].imshow(prior_mean, cmap='viridis', origin='lower', vmin=prior_vmin, vmax=prior_vmax)
     cbar = plt.colorbar(f1, ax=ax[1], fraction=0.046, pad=0.04)
     cbar.set_label("Naive mean diff. coef. ($\mu$m$^{2}$ s$^{-1}$)", fontsize=fontsize)
 
-    f2 = ax[2].imshow(post_mean, cmap='viridis', origin='lower', vmin=vmin, vmax=vmax)
+    f2 = ax[2].imshow(post_mean, cmap='viridis', origin='lower', vmin=post_vmin, vmax=post_vmax)
     cbar = plt.colorbar(f2, ax=ax[2], fraction=0.046, pad=0.04)
     cbar.set_label("Posterior mean diff. coef. ($\mu$m$^{2}$ s$^{-1}$)", fontsize=fontsize)
 

@@ -9,4 +9,19 @@ dynamics.
 
 See the [Documentation](https://saspt.readthedocs.io/en/latest/) for more info. 
 
-To install: `pip install saspt`
+See the `examples` directory for usage examples.
+
+## Install
+
+Method 1 (recommended): install from PyPI:
+```
+  pip install saspt
+```
+
+Method 2: install from source
+
+```
+  git clone https://github.com/alecheckert/saspt
+  cd saspt
+  pip install -e .
+```
