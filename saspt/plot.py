@@ -588,7 +588,7 @@ def spatial_assignment_probability_plot(
     bin_area = (spatial_bin_size * pixel_size_um)**2
 
     # Number of detections in each bin
-    H = np.histogram2d(tracks[PY], tracks[PX], bins=(xbins, ybins))[0].astype(np.float64)
+    H = np.histogram2d(tracks[PY], tracks[PX], bins=(ybins, xbins))[0].astype(np.float64).T
     H = gaussian_filter(H, smooth_kernel)
     occupied = H > 0
 
@@ -599,16 +599,16 @@ def spatial_assignment_probability_plot(
     # Mean prior diffusion coefficient in each spatial bin
     mean_diff_coef = pd.Series((assignment_likelihoods.T * diff_coefs).sum(axis=1),
         index=track_indices, name="mean_prior_diff_coef")
-    prior_mean = np.histogram2d(tracks[PY], tracks[PX], bins=(xbins, ybins),
-        weights=tracks[TRACK].map(mean_diff_coef))[0].astype(np.float64)
+    prior_mean = np.histogram2d(tracks[PY], tracks[PX], bins=(ybins, xbins),
+        weights=tracks[TRACK].map(mean_diff_coef))[0].astype(np.float64).T
     prior_mean = gaussian_filter(prior_mean, smooth_kernel)
     prior_mean[occupied] = prior_mean[occupied] / H[occupied]
 
     # Mean posterior diffusion coefficient in each spatial bin
     mean_diff_coef = pd.Series((assignment_probabilities.T * diff_coefs).sum(axis=1),
         index=track_indices, name="mean_posterior_diff_coef")
-    post_mean = np.histogram2d(tracks[PY], tracks[PX], bins=(xbins, ybins),
-        weights=tracks[TRACK].map(mean_diff_coef))[0].astype(np.float64)
+    post_mean = np.histogram2d(tracks[PY], tracks[PX], bins=(ybins, xbins),
+        weights=tracks[TRACK].map(mean_diff_coef))[0].astype(np.float64).T
     post_mean = gaussian_filter(post_mean, smooth_kernel)
     post_mean[occupied] = post_mean[occupied] / H[occupied]
 
