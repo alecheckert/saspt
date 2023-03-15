@@ -5,7 +5,7 @@ pbar = ProgressBar()
 
 from .constants import DEFAULT_CONDITION_COL, DEFAULT_CONDITION
 from .io import load_detections
-from .lik import make_likelihood, make_likelihood_from_params, Likelihood
+from .lik import make_likelihood_from_params, Likelihood
 from .parameters import StateArrayParameters
 from .sa import StateArray 
 from .trajectory_group import TrajectoryGroup
