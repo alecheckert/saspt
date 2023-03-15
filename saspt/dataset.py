@@ -5,7 +5,7 @@ pbar = ProgressBar()
 
 from .constants import DEFAULT_CONDITION_COL, DEFAULT_CONDITION
 from .io import load_detections
-from .lik import make_likelihood, make_likelihood_from_params, Likelihood
+from .lik import make_likelihood_from_params, Likelihood
 from .parameters import StateArrayParameters
 from .sa import StateArray 
 from .trajectory_group import TrajectoryGroup
@@ -349,7 +349,7 @@ class StateArrayDataset:
         return self._marginal_posterior_occs_dataframe
 
     def infer_posterior_by_condition(self, col: str, normalize: bool=False
-        ) -> (np.ndarray, List[str]):
+        ) -> Tuple[np.ndarray, List[str]]:
         """ Aggregate trajectories across files by grouping on an arbitrary
         column in *self.paths*. Run state array inference on each group. 
 
@@ -687,7 +687,7 @@ class StateArrayDataset:
         return result 
 
     def apply_by(self, col: str, func: Callable, is_variadic: bool=False, 
-        **kwargs) -> (list, List[str]):
+        **kwargs) -> Tuple[list, List[str]]:
         """ Apply a function in parallel to groups of files in *self.paths*.
 
         args
