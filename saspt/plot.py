@@ -12,8 +12,6 @@ PLOTS TO MAKE:
 import os, sys, warnings, numpy as np, pandas as pd, matplotlib, \
     matplotlib.pyplot as plt, matplotlib.gridspec as grd, seaborn as sns
 from typing import Tuple, List
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.cm import get_cmap
 from scipy.ndimage import gaussian_filter
 
 from .constants import TRACK, FRAME, PY, PX
@@ -472,7 +470,6 @@ def temporal_assignment_probability_plot(
         L = norm(L)
 
     # Plot layout
-    subplot_extent = (0, 6, 0, 1.5)
     figsize = (subplot_extent[1], subplot_extent[3]*3)
     fig, ax = plt.subplots(3, 1, figsize=figsize)
 
@@ -523,8 +520,17 @@ def temporal_assignment_probability_plot(
     if suptitle is not None:
         fig.suptitle(suptitle, fontsize=fontsize)
 
-    # Save
     plt.tight_layout()
+
+    # Set bottom plot width to match top plots
+    heatmap_pos = ax[0].get_position()
+    lineplot_pos = ax[2].get_position()
+    ax[2].set_position([
+        heatmap_pos.x0, lineplot_pos.y0, heatmap_pos.width, lineplot_pos.height
+    ])
+    ax[2].set_xlim((0, n_blocks * frame_block_size))
+
+    # Save
     plt.savefig(out_png, dpi=600)
     plt.close()
 
