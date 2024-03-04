@@ -348,6 +348,34 @@ class StateArrayDataset:
             self._marginal_posterior_occs_dataframe = df 
         return self._marginal_posterior_occs_dataframe
 
+    def infer_posterior_by_condition(self, col: str, normalize: bool=False
+        ) -> Tuple[np.ndarray, List[str]]:
+        """ Aggregate trajectories across files by grouping on an arbitrary
+        column in *self.paths*. Run state array inference on each group. 
+
+        args
+        ----
+            col         :   str, a column in *self.paths* to group by
+            normalize   :   bool, normalize posterior occupations after running
+
+        returns
+        -------
+            (
+                2D numpy.ndarray of shape (n_conditions, n_diff_coefs), 
+                    posterior occupations for each condition marginalized
+                    on diffusion coefficient;
+
+                list of str of length n_conditions, the names of the conditions
+                    corresponding to the first axis
+            )
+        """
+        posterior_occs, conditions = self.apply_by(col,
+            self.calc_marginal_posterior_occs, is_variadic=True)
+        posterior_occs = np.asarray(posterior_occs)
+        if normalize:
+            posterior_occs = normalize_2d(posterior_occs, axis=1)
+        return posterior_occs, conditions
+
     #############
     ## METHODS ##
     #############
@@ -371,7 +399,7 @@ class StateArrayDataset:
                 total number of jumps observed for each SPT experiment
         """
         SA = self._init_state_array(*track_paths)
-        return SA.n_jumps * SA.naive_occs
+        return SA.naive_occs
 
     def calc_posterior_occs(self, *track_paths: str) -> np.ndarray:
         """
@@ -387,7 +415,7 @@ class StateArrayDataset:
         """
         SA = self._init_state_array(*track_paths)
         return SA.n_jumps * SA.posterior_occs
-    '''
+
     def calc_marginal_naive_occs(self, *track_paths: str) -> np.ndarray:
         """ Calculate the likelihood function for a particular set of 
         trajectories, marginalized on the diffusion coefficient.
@@ -422,60 +450,6 @@ class StateArrayDataset:
         """
         return self.likelihood.marginalize_on_diff_coef(
             self.calc_posterior_occs(*track_paths))
-    '''
-    def calc_occs_and_processed_stats(self, *track_paths: str) -> Tuple[np.ndarray, pd.DataFrame]:
-        """ Wrapper to calculate naive and posterior occupations
-        and processed track statistics for a set of trajectories.
-        This allows us to subsample the same trajectories to get
-        these three attributes.
-
-        args
-        ----
-            track_paths :   paths to files with trajectories readable
-                            by saspt.utils.load_detections
-
-        returns
-        -------
-            (
-                numpy.ndarray of shape *n_diff_coefs*, occupations scaled
-                    by the total number of jumps observed in this set of 
-                    trajectories;
-
-                pandas.DataFrame, statistics on the preprocessed trajectories
-            )
-        """
-        SA = self._init_state_array(*track_paths)
-        naive_occs = SA.n_jumps * SA.naive_occs
-        posterior_occs = SA.n_jumps * SA.posterior_occs
-        return SA.n_jumps * SA.posterior_occs, SA.T.processed_track_statistics
-    
-    def infer_posterior_by_condition(self, col: str, normalize: bool=False
-        ) -> Tuple[np.ndarray, List[str]]:
-        """ Aggregate trajectories across files by grouping on an arbitrary
-        column in *self.paths*. Run state array inference on each group. 
-
-        args
-        ----
-            col         :   str, a column in *self.paths* to group by
-            normalize   :   bool, normalize posterior occupations after running
-
-        returns
-        -------
-            (
-                2D numpy.ndarray of shape (n_conditions, n_diff_coefs), 
-                    posterior occupations for each condition marginalized
-                    on diffusion coefficient;
-
-                list of str of length n_conditions, the names of the conditions
-                    corresponding to the first axis
-            )
-        """
-        posterior_occs, conditions = self.apply_by(col,
-            self.calc_marginal_posterior_occs, is_variadic=True)
-        posterior_occs = np.asarray(posterior_occs)
-        if normalize:
-            posterior_occs = normalize_2d(posterior_occs, axis=1)
-        return posterior_occs, conditions
 
     ##############
     ## PLOTTING ##
@@ -690,8 +664,8 @@ class StateArrayDataset:
         return result       
 
     def parallel_map(self, func, args, msg: str=None, progress_bar: bool=False):
-        """ Parallelize a function across multiple arguments using a 
-        process-based dask scheduler.
+        """ Parallelize a function across multiple arguments using a process-based
+        dask scheduler.
 
         args
         ----
