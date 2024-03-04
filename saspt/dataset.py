@@ -475,6 +475,8 @@ class StateArrayDataset:
             stats[c] = self.paths[c]
         
         self._processed_track_statistics = stats
+        self._naive_occs = np.asarray(naive_occs)
+        self._posterior_occs = np.asarray(posterior_occs)
     
     def infer_posterior_by_condition(self, col: str, normalize: bool=False
         ) -> Tuple[np.ndarray, List[str]]:
