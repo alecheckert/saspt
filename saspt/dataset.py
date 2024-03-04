@@ -234,11 +234,12 @@ class StateArrayDataset:
         """
         if not hasattr(self, "_naive_occs"):
             if self.n_files > 0:
-                self._naive_occs = np.asarray(self.parallel_map(
+                self.calc_occs_and_stats_parallelized()
+                '''self._naive_occs = np.asarray(self.parallel_map(
                     self.calc_naive_occs,
                     self.paths[self.path_col],
                     progress_bar=self.progress_bar,
-                ))
+                ))'''
             else:
                 self._naive_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
         return self._naive_occs
@@ -257,11 +258,12 @@ class StateArrayDataset:
         """
         if not hasattr(self, "_posterior_occs"):
             if self.n_files > 0:
-                self._posterior_occs = np.asarray(self.parallel_map(
+                self.calc_occs_and_stats_parallelized()
+                '''self._posterior_occs = np.asarray(self.parallel_map(
                     self.calc_posterior_occs,
                     self.paths[self.path_col],
                     progress_bar=self.progress_bar,
-                ))
+                ))'''
             else:
                 self._posterior_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
         return self._posterior_occs
@@ -357,7 +359,7 @@ class StateArrayDataset:
         for attr in ["_n_files", "_naive_occs", "_posterior_occs"]:
             if hasattr(self, attr):
                 delattr(self, attr)
-
+    '''
     def calc_naive_occs(self, *track_paths: str) -> np.ndarray:
         """
         args
@@ -387,7 +389,7 @@ class StateArrayDataset:
         """
         SA = self._init_state_array(*track_paths)
         return SA.n_jumps * SA.posterior_occs
-    '''
+    
     def calc_marginal_naive_occs(self, *track_paths: str) -> np.ndarray:
         """ Calculate the likelihood function for a particular set of 
         trajectories, marginalized on the diffusion coefficient.
@@ -423,11 +425,12 @@ class StateArrayDataset:
         return self.likelihood.marginalize_on_diff_coef(
             self.calc_posterior_occs(*track_paths))
     '''
-    def calc_occs_and_processed_stats(self, *track_paths: str) -> Tuple[np.ndarray, pd.DataFrame]:
-        """ Wrapper to calculate naive and posterior occupations
-        and processed track statistics for a set of trajectories.
-        This allows us to subsample the same trajectories to get
-        these three attributes.
+    def calc_occs_and_stats_parallelized(self, *track_paths: str
+        ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+        """ Calculate naive occupations, posterior occupations, 
+        and processed track statistics, parallelized for a set 
+        of trajectories. This allows us to subsample the same 
+        trajectories (if needed) to get these three attributes.
 
         args
         ----
@@ -444,12 +447,34 @@ class StateArrayDataset:
                 pandas.DataFrame, statistics on the preprocessed trajectories
             )
         """
-        pass
-        '''
-        SA = self._init_state_array(*track_paths)
-        naive_occs = SA.n_jumps * SA.naive_occs
-        posterior_occs = SA.n_jumps * SA.posterior_occs
-        return SA.n_jumps * SA.posterior_occs, SA.T.processed_track_statistics'''
+        @dask.delayed
+        def g(filepath: str) -> Tuple[np.ndarray, np.ndarray, dict]:
+            SA = self._init_state_array(filepath)
+            naive_occs = SA.n_jumps * SA.naive_occs
+            posterior_occs = SA.n_jumps * SA.posterior_occs
+            stats = SA.trajectories.processed_track_statistics
+            stats[self.path_col] = filepath
+            return (naive_occs, posterior_occs, stats)
+        naive_occs, posterior_occs, stats = self.parallel_map(
+            g, self.paths[self.path_col])
+        
+        # Test for empty stats dict
+        if not stats:
+            self._naive_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
+            self._posterior_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
+            self._processed_track_statistics = pd.DataFrame(
+                columns=TrajectoryGroup.statistic_names + [self.path_col])
+            return
+        
+        # Put stats into DF and sanity check
+        stats = pd.DataFrame(stats)
+        assert (stats[self.path_col] == self.paths[self.path_col]).all()
+
+        # Map all metadata from the input paths DataFrame to the track statistics dataframe
+        for c in filter(lambda c: c!=self.path_col, self.paths.columns):
+            stats[c] = self.paths[c]
+        
+        self._processed_track_statistics = stats
     
     def infer_posterior_by_condition(self, col: str, normalize: bool=False
         ) -> Tuple[np.ndarray, List[str]]:
