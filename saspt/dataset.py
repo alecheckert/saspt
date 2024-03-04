@@ -204,8 +204,11 @@ class StateArrayDataset:
             if self.n_files > 0:
                 self._raw_track_statistics = self._get_raw_track_statistics()
             else:
+                # Set empty stats with expected columns and metadata
                 self._raw_track_statistics = pd.DataFrame(
-                    columns=TrajectoryGroup.statistic_names + [self.path_col])
+                    columns=TrajectoryGroup.statistic_names)
+                for c in self.paths.columns:
+                    self._raw_track_statistics[c] = self.paths[c]
         return self._raw_track_statistics   
 
     @property
@@ -225,7 +228,9 @@ class StateArrayDataset:
                 self.calc_occs_and_stats_parallelized()
             else:
                 self._processed_track_statistics = pd.DataFrame(
-                    columns=TrajectoryGroup.statistic_names + [self.path_col])
+                    columns=TrajectoryGroup.statistic_names)
+                for c in self.paths.columns:
+                    self._processed_track_statistics[c] = self.paths[c]
         return self._processed_track_statistics
 
     @property 
@@ -387,10 +392,14 @@ class StateArrayDataset:
 
         # Test for empty stats dict
         if not stats:
+            # Set empty occs
             self._naive_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
             self._posterior_occs = np.zeros((self.n_files, *self.shape), dtype=np.float64)
+            # Set empty stats with expected columns and metadata
             self._processed_track_statistics = pd.DataFrame(
-                columns=TrajectoryGroup.statistic_names + [self.path_col])
+                columns=TrajectoryGroup.statistic_names)
+            for c in self.paths.columns:
+                self._raw_track_statistics[c] = self.paths[c]
             return
 
         # Put stats into DF and sanity check
@@ -405,6 +414,25 @@ class StateArrayDataset:
         self._processed_track_statistics = stats
         self._naive_occs = np.asarray(naive_occs)
         self._posterior_occs = np.asarray(posterior_occs)
+    
+    def calc_marginal_posterior_occs(self, *track_paths: str) -> np.ndarray:
+        """ Calculate the posterior mean state occupations for a particular
+        set of trajectories, marginalized on diffusion coefficient.
+
+        args
+        ----
+            track_paths :   paths to files with trajectories readable
+                            by saspt.utils.load_detections
+
+        returns
+        -------
+            numpy.ndarray of shape *n_diff_coefs*, occupations scaled
+                by the total number of jumps observed in this set of 
+                trajectories
+        """
+        SA = self._init_state_array(*track_paths)
+        return self.likelihood.marginalize_on_diff_coef(
+            SA.n_jumps * SA.posterior_occs)
     
     def infer_posterior_by_condition(self, col: str, normalize: bool=False
         ) -> Tuple[np.ndarray, List[str]]:
