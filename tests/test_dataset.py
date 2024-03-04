@@ -98,7 +98,7 @@ class TestStateArrayDataset(unittest.TestCase):
         ML = D.marginal_naive_occs
         assert isinstance(ML, np.ndarray)
         assert ML.shape == (len(self.paths), len(self.likelihood.diff_coefs))
-        assert (np.abs(ML.sum(axis=1) - 1.0) < 1.0e-6).all()
+        assert (np.abs(ML.sum(axis=1) - D.jumps_per_file) < 1.0e-6).all()
 
         # Make sure StateArrayDataset.clear works
         D.clear()
