@@ -201,7 +201,11 @@ class StateArrayDataset:
             pandas.DataFrame, where each row corresponds to one file
         """
         if not hasattr(self, "_raw_track_statistics"):
-            self._raw_track_statistics = self._get_raw_track_statistics()
+            if self.n_files > 0:
+                self._raw_track_statistics = self._get_raw_track_statistics()
+            else:
+                self._raw_track_statistics = pd.DataFrame(
+                    columns=TrajectoryGroup.statistic_names + [self.path_col])
         return self._raw_track_statistics   
 
     @property
