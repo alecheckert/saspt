@@ -214,3 +214,31 @@ class TestStateArrayDataset(unittest.TestCase):
             condition_col=self.condition_col)
         self.check_plot_func(D.posterior_line_plot,
             "_out_test_posterior_line_plot.png")
+    
+    def test_subsampling(self):
+        # New params with a smaller sample size
+        sample_size = 10
+        params = StateArrayParameters(
+            pixel_size_um=0.16,
+            frame_interval=0.01,
+            focal_depth=0.7,
+            splitsize=10,
+            sample_size=sample_size,
+            start_frame=0,
+            max_iter=10,
+            conc_param=1.0,
+            progress_bar=False,
+            num_workers=2,
+        )
+        self.params = params
+        D = StateArrayDataset(self.paths, self.likelihood,
+            params=self.params, path_col=self.path_col,
+            condition_col=self.condition_col)
+        
+        # Check that jumps_per_file and implied jumps are correct
+        assert np.allclose(D.jumps_per_file.astype(float), D.posterior_occs.sum(axis=(1,2)))
+        assert np.allclose(D.jumps_per_file.astype(float), D.naive_occs.sum(axis=(1,2)))
+
+        # Check that subsampling actually worked
+        n_trajs = D.processed_track_statistics['n_tracks']
+        assert (n_trajs <= sample_size).all()
