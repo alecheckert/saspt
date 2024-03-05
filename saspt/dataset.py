@@ -370,11 +370,6 @@ class StateArrayDataset:
         and processed track statistics, parallelized for a set 
         of trajectories. This allows us to subsample the same 
         trajectories (if needed) to get these three attributes.
-
-        args
-        ----
-            track_paths :   paths to files with trajectories readable
-                            by saspt.utils.load_detections
         """
         @dask.delayed
         def g(filepath: str) -> Tuple[np.ndarray, np.ndarray, dict]:
