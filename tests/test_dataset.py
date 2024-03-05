@@ -242,3 +242,14 @@ class TestStateArrayDataset(unittest.TestCase):
         # Check that subsampling actually worked
         n_trajs = D.processed_track_statistics['n_tracks']
         assert (n_trajs <= sample_size).all()
+
+        # Clear and repeat tests
+        D.clear()
+        
+        # Check that jumps_per_file and implied jumps are correct
+        assert np.allclose(D.jumps_per_file.astype(float), D.posterior_occs.sum(axis=(1,2)))
+        assert np.allclose(D.jumps_per_file.astype(float), D.naive_occs.sum(axis=(1,2)))
+
+        # Check that subsampling actually worked
+        n_trajs = D.processed_track_statistics['n_tracks']
+        assert (n_trajs <= sample_size).all()
