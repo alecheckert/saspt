@@ -360,7 +360,7 @@ class StateArrayDataset:
     def clear(self):
         """ Delete expensive cached attributes """
         for attr in ["_n_files", "_naive_occs", "_posterior_occs",
-                     "_processed_track_statistics"]:
+                     "_processed_track_statistics", "_jumps_per_file"]:
             if hasattr(self, attr):
                 delattr(self, attr)
     
